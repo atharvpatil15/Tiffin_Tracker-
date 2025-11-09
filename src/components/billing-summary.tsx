@@ -129,9 +129,9 @@ const calculateBill = (
     if (dayTotal > 0) {
       dailyBreakdown.push({
         date: format(day, 'MMM d, yyyy'),
-        breakfast: breakfastTaken ? '✔' : '-',
-        lunch: lunchTaken ? '✔' : '-',
-        dinner: dinnerTaken ? '✔' : '-',
+        breakfast: breakfastTaken ? '✅' : '❌',
+        lunch: lunchTaken ? '✅' : '❌',
+        dinner: dinnerTaken ? '✅' : '❌',
         dayTotal: dayTotal,
       });
     }
@@ -190,8 +190,6 @@ const BillingSummary: FC<BillingSummaryProps> = ({
         }
     });
 
-    let finalY = (doc as any).lastAutoTable.finalY;
-
     if (dailyBreakdown.length > 0) {
         doc.addPage();
         doc.setFont('helvetica', 'bold');
@@ -204,6 +202,17 @@ const BillingSummary: FC<BillingSummaryProps> = ({
             body: dailyBreakdown.map(d => [d.date, d.breakfast, d.lunch, d.dinner, d.dayTotal.toFixed(2)]),
             headStyles: { fillColor: [255, 99, 71] },
             theme: 'grid',
+            styles: { font: 'Arial', halign: 'center' },
+            bodyStyles: {
+              didParseCell: function (data: any) {
+                if (data.cell.text[0] === '✅') {
+                  data.cell.styles.textColor = '#28a745';
+                }
+                if (data.cell.text[0] === '❌') {
+                  data.cell.styles.textColor = '#dc3545';
+                }
+              },
+            },
         });
     }
 
