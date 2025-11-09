@@ -13,6 +13,7 @@ import {
   subMonths,
 } from 'date-fns';
 import { CalendarIcon, Edit, Sunrise, Sun, Moon, Download } from 'lucide-react';
+import jsPDF from 'jspdf';
 
 import type { TiffinLog } from '@/lib/types';
 import { MEAL_PRICES } from '@/lib/constants';
@@ -129,22 +130,54 @@ const BillingSummary: FC<BillingSummaryProps> = ({
   };
 
   const handleDownloadBill = () => {
-    let billContent = `Tiffin Bill for ${user.displayName}\n`;
-    billContent += `Billing Cycle: ${format(billingCycle.start, 'MMM d, yyyy')} - ${format(billingCycle.end, 'MMM d, yyyy')}\n\n`;
-    billContent += '------------------------------------\n';
-    billContent += `Breakfasts: ${mealCounts.breakfast} x ₹${MEAL_PRICES.breakfast} = ₹${(mealCounts.breakfast * MEAL_PRICES.breakfast).toFixed(2)}\n`;
-    billContent += `Lunches:    ${mealCounts.lunch} x ₹${MEAL_PRICES.lunch} = ₹${(mealCounts.lunch * MEAL_PRICES.lunch).toFixed(2)}\n`;
-    billContent += `Dinners:    ${mealCounts.dinner} x ₹${MEAL_PRICES.dinner} = ₹${(mealCounts.dinner * MEAL_PRICES.dinner).toFixed(2)}\n`;
-    billContent += '------------------------------------\n';
-    billContent += `TOTAL BILL: ₹${totalBill.toFixed(2)}\n`;
+    const doc = new jsPDF();
+    
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(22);
+    doc.text('Tiffin Bill', 105, 20, { align: 'center' });
 
-    const blob = new Blob([billContent], { type: 'text/plain;charset=utf-8' });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = `TiffinBill-${format(new Date(), 'yyyy-MM-dd')}.txt`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`Billed to: ${user.displayName}`, 20, 40);
+    doc.text(`Billing Cycle: ${format(billingCycle.start, 'MMM d, yyyy')} - ${format(billingCycle.end, 'MMM d, yyyy')}`, 20, 48);
+    
+    doc.line(20, 60, 190, 60); // separator
+
+    doc.setFont('courier', 'bold');
+    doc.text('Item', 20, 70);
+    doc.text('Quantity', 80, 70);
+    doc.text('Rate', 120, 70);
+    doc.text('Amount', 160, 70);
+    doc.line(20, 75, 190, 75);
+
+    let yPos = 85;
+    const items = [
+      { name: 'Breakfasts', count: mealCounts.breakfast, price: MEAL_PRICES.breakfast },
+      { name: 'Lunches', count: mealCounts.lunch, price: MEAL_PRICES.lunch },
+      { name: 'Dinners', count: mealCounts.dinner, price: MEAL_PRICES.dinner },
+    ];
+
+    doc.setFont('courier', 'normal');
+    items.forEach(item => {
+      if (item.count > 0) {
+        const total = (item.count * item.price).toFixed(2);
+        doc.text(item.name, 20, yPos);
+        doc.text(item.count.toString(), 80, yPos);
+        doc.text(`Rs. ${item.price.toFixed(2)}`, 120, yPos);
+        doc.text(`Rs. ${total}`, 160, yPos);
+        yPos += 10;
+      }
+    });
+
+    doc.line(20, yPos, 190, yPos);
+    yPos += 10;
+
+    doc.setFont('courier', 'bold');
+    doc.setFontSize(14);
+    doc.text('TOTAL BILL:', 110, yPos);
+    doc.text(`Rs. ${totalBill.toFixed(2)}`, 160, yPos);
+
+    doc.save(`TiffinBill-${user.displayName}-${format(new Date(), 'yyyy-MM-dd')}.pdf`);
   };
 
 

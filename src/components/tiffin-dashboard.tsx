@@ -113,8 +113,8 @@ const TiffinDashboard = () => {
 
   if (isLoading) {
     return (
-      <div className="grid h-full grid-cols-1 gap-6 p-6 lg:grid-cols-2">
-        <Skeleton className="h-full w-full" />
+      <div className="grid h-full grid-cols-1 gap-6 p-6 lg:grid-cols-3">
+        <Skeleton className="h-full w-full lg:col-span-2" />
         <Skeleton className="h-[400px] w-full" />
       </div>
     );
@@ -139,17 +139,17 @@ const TiffinDashboard = () => {
 
   return (
     <>
-      <div className="grid h-full grid-cols-1 items-start gap-8 p-4 md:p-8 lg:grid-cols-2">
-        <Card className="h-full w-full flex flex-col">
-          <div className="flex-1 p-2 sm:p-4">
-            <TiffinCalendar
-              tiffinLog={tiffinLog}
-              onDayClick={handleDayClick}
-              month={month}
-              setMonth={setMonth}
-            />
-          </div>
-        </Card>
+      <div className="grid h-full grid-cols-1 items-start gap-8 p-4 md:p-8 lg:grid-cols-3">
+        <div className="lg:col-span-2">
+          <Card className="w-full p-2 sm:p-4">
+              <TiffinCalendar
+                tiffinLog={tiffinLog}
+                onDayClick={handleDayClick}
+                month={month}
+                setMonth={setMonth}
+              />
+          </Card>
+        </div>
         <div className="space-y-6">
           {fullUserData && (
             <BillingSummary
