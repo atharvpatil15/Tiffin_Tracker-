@@ -1,27 +1,29 @@
-"use client";
+'use client';
 
-import { useState, useEffect } from "react";
-import { get, ref, onValue, set, update } from "firebase/database";
-import { format } from "date-fns";
-import { database } from "@/lib/firebase";
-import type { UserData, MealType, TiffinDay } from "@/lib/types";
-import { USERS } from "@/lib/constants";
-import UserSwitcher from "./user-switcher";
-import TiffinCalendar from "./tiffin-calendar";
-import BillingSummary from "./billing-summary";
-import TiffinEditor from "./tiffin-editor";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { AlertTriangle } from "lucide-react";
+import { useState, useEffect, useMemo } from 'react';
+import { format, startOfDay } from 'date-fns';
+import {
+  useFirestore,
+  useUser,
+  useCollection,
+  useDoc,
+  setDocumentNonBlocking,
+  updateDocumentNonBlocking,
+  useMemoFirebase,
+} from '@/firebase';
+import { collection, doc, setDoc } from 'firebase/firestore';
 
-type AllUsersData = Record<(typeof USERS)[number]["id"], UserData>;
+import type { UserData, MealType, TiffinDay, TiffinOrder } from '@/lib/types';
+import TiffinCalendar from './tiffin-calendar';
+import BillingSummary from './billing-summary';
+import TiffinEditor from './tiffin-editor';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { AlertTriangle } from 'lucide-react';
 
 const TiffinDashboard = () => {
-  const [activeUserId, setActiveUserId] = useState<(typeof USERS)[number]["id"]>(USERS[0].id);
-  const [allUsersData, setAllUsersData] = useState<AllUsersData | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
+  const { user, isUserLoading } = useUser();
+  const firestore = useFirestore();
   const [month, setMonth] = useState(new Date());
 
   const [editorState, setEditorState] = useState<{
@@ -29,137 +31,144 @@ const TiffinDashboard = () => {
     date: Date | null;
   }>({ open: false, date: null });
 
+  const userDocRef = useMemoFirebase(
+    () => (user ? doc(firestore, 'users', user.uid) : null),
+    [firestore, user]
+  );
+  const { data: userData, isLoading: isUserDocLoading } = useDoc<UserData>(userDocRef);
+
+  const tiffinOrdersRef = useMemoFirebase(
+    () => (user ? collection(firestore, 'users', user.uid, 'tiffinOrders') : null),
+    [firestore, user]
+  );
+
+  const {
+    data: tiffinData,
+    isLoading: isTiffinLoading,
+    error: tiffinError,
+  } = useCollection<TiffinOrder>(tiffinOrdersRef);
+  
+  // Create user profile if it doesn't exist
   useEffect(() => {
-    const usersRef = ref(database, 'users');
-
-    const unsubscribe = onValue(usersRef, (snapshot) => {
-      if (snapshot.exists()) {
-        const data = snapshot.val();
-        
-        // Ensure default values are present
-        for (const userId in data) {
-          if (!data[userId].billingStartDate) {
-            data[userId].billingStartDate = 1;
-          }
-           if (!data[userId].name) {
-            data[userId].name = USERS.find(u => u.id === userId)?.name || 'User';
-          }
-           if (!data[userId].tiffins) {
-            data[userId].tiffins = {};
-          }
-        }
-        setAllUsersData(data);
-
-      } else {
-        // Initialize data if it doesn't exist in Firebase
-        const initialData: AllUsersData = {
-          user1: { name: 'User 1', billingStartDate: 21, tiffins: {} },
-          user2: { name: 'User 2', billingStartDate: 1, tiffins: {} },
-        };
-        set(usersRef, initialData).catch(e => console.error("Failed to initialize data:", e));
-        setAllUsersData(initialData);
-      }
-      setLoading(false);
-    }, (err) => {
-      console.error(err);
-      setError("Failed to connect to the database. Please check your Firebase setup and network connection.");
-      setLoading(false);
-    });
-
-    return () => unsubscribe();
-  }, []);
+    if (!isUserLoading && user && !isUserDocLoading && !userData) {
+      const newUser: UserData = {
+        name: user.displayName || 'New User',
+        email: user.email || '',
+        billingStartDate: 1, // Default billing start date
+      };
+      const userRef = doc(firestore, 'users', user.uid);
+      setDoc(userRef, newUser).catch((e) =>
+        console.error('Failed to create user profile:', e)
+      );
+    }
+  }, [user, isUserLoading, userData, isUserDocLoading, firestore]);
 
   const handleDayClick = (date: Date) => {
-    setEditorState({ open: true, date });
+    setEditorState({ open: true, date: startOfDay(date) });
   };
 
   const handleEditorSave = (meals: TiffinDay) => {
-    if (!editorState.date) return;
-    const dateKey = format(editorState.date, "yyyy-MM-dd");
-    const tiffinRef = ref(database, `users/${activeUserId}/tiffins/${dateKey}`);
-    
-    // Filter out meals that are false
-    const mealsToSave = Object.entries(meals).reduce((acc, [meal, value]) => {
-      if (value) {
-        acc[meal as MealType] = true;
-      }
-      return acc;
-    }, {} as Partial<TiffinDay>);
+    if (!editorState.date || !user) return;
 
-    set(tiffinRef, Object.keys(mealsToSave).length > 0 ? mealsToSave : null)
-      .then(() => {
-        setEditorState({ open: false, date: null });
-      })
-      .catch((err) => {
-        console.error("Failed to save tiffin data: ", err);
-        setError("Could not save your changes. Please try again.");
-      });
+    const dateKey = format(editorState.date, 'yyyy-MM-dd');
+    const orderId = dateKey; // Use date as the document ID for simplicity
+    const tiffinDocRef = doc(
+      firestore,
+      'users',
+      user.uid,
+      'tiffinOrders',
+      orderId
+    );
+
+    const mealsToSave: Partial<TiffinOrder> = {
+      userId: user.uid,
+      date: dateKey,
+      breakfast: meals.breakfast || false,
+      lunch: meals.lunch || false,
+      dinner: meals.dinner || false,
+    };
+
+    setDocumentNonBlocking(tiffinDocRef, mealsToSave, { merge: true });
+    setEditorState({ open: false, date: null });
   };
 
   const handleBillingDateChange = (newDate: number) => {
-    const userRef = ref(database, `users/${activeUserId}`);
-    update(userRef, { billingStartDate: newDate })
-      .catch((err) => {
-        console.error("Failed to update billing date: ", err);
-        setError("Could not save billing date. Please try again.");
-      });
+    if (!userDocRef) return;
+    updateDocumentNonBlocking(userDocRef, { billingStartDate: newDate });
   };
 
-  const activeUserData = allUsersData ? allUsersData[activeUserId] : null;
+  const tiffinLog = useMemo(() => {
+    if (!tiffinData) return {};
+    return tiffinData.reduce((acc, order) => {
+      acc[order.date] = {
+        breakfast: order.breakfast,
+        lunch: order.lunch,
+        dinner: order.dinner,
+      };
+      return acc;
+    }, {} as { [date: string]: Partial<TiffinDay> });
+  }, [tiffinData]);
 
-  if (loading) {
+  const isLoading = isUserLoading || isUserDocLoading || isTiffinLoading;
+
+  if (isLoading) {
     return (
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
         <div className="xl:col-span-3 lg:col-span-2">
-            <Skeleton className="h-[96px] w-full mb-4"/>
-            <Skeleton className="h-[600px] w-full" />
+          <Skeleton className="h-[600px] w-full" />
         </div>
         <div className="lg:col-span-1 xl:col-span-1">
-            <Skeleton className="h-[400px] w-full"/>
+          <Skeleton className="h-[400px] w-full" />
         </div>
       </div>
     );
   }
-  
-  if (error) {
+
+  if (tiffinError) {
     return (
-        <Alert variant="destructive">
-          <AlertTriangle className="h-4 w-4" />
-          <AlertTitle>Error</AlertTitle>
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
+      <Alert variant="destructive">
+        <AlertTriangle className="h-4 w-4" />
+        <AlertTitle>Error</AlertTitle>
+        <AlertDescription>
+          {tiffinError.message ||
+            'Failed to load tiffin data. Check your connection and permissions.'}
+        </AlertDescription>
+      </Alert>
     );
   }
+  
+  const fullUserData = userData ? { ...userData, tiffins: tiffinLog, id: user!.uid, displayName: user!.displayName || '' } : null;
 
   return (
     <>
-      <UserSwitcher activeUser={activeUserId} onUserChange={setActiveUserId} />
       <div className="mt-4 grid flex-1 items-start gap-4 lg:grid-cols-3 xl:grid-cols-4">
         <div className="grid auto-rows-max items-start gap-4 lg:col-span-2 xl:col-span-3">
-          {activeUserData && (
-            <TiffinCalendar
-              tiffinLog={activeUserData.tiffins || {}}
-              onDayClick={handleDayClick}
-              month={month}
-              setMonth={setMonth}
-            />
-          )}
+          <TiffinCalendar
+            tiffinLog={tiffinLog}
+            onDayClick={handleDayClick}
+            month={month}
+            setMonth={setMonth}
+          />
         </div>
         <div className="lg:col-span-1 xl:col-span-1">
-           {activeUserData && (
+          {fullUserData && (
             <BillingSummary
-                user={activeUserData}
-                onBillingDateChange={handleBillingDateChange}
+              user={fullUserData}
+              onBillingDateChange={handleBillingDateChange}
             />
-           )}
+          )}
         </div>
       </div>
       {editorState.date && (
         <TiffinEditor
           open={editorState.open}
-          onOpenChange={(open) => setEditorState({ open, date: open ? editorState.date : null })}
+          onOpenChange={(open) =>
+            setEditorState({ open, date: open ? editorState.date : null })
+          }
           date={editorState.date}
-          initialMeals={activeUserData?.tiffins?.[format(editorState.date, "yyyy-MM-dd")] || {}}
+          initialMeals={
+            tiffinLog[format(editorState.date, 'yyyy-MM-dd')] || {}
+          }
           onSave={handleEditorSave}
         />
       )}

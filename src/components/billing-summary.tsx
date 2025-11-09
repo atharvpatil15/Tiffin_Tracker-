@@ -1,7 +1,7 @@
-"use client";
+'use client';
 
-import type { FC } from "react";
-import { useState } from "react";
+import type { FC } from 'react';
+import { useState } from 'react';
 import {
   addMonths,
   eachDayOfInterval,
@@ -11,12 +11,11 @@ import {
   isBefore,
   startOfMonth,
   subMonths,
-} from "date-fns";
-import { CalendarIcon, Edit, Utensils, Sunrise, Sun, Moon } from "lucide-react";
+} from 'date-fns';
+import { CalendarIcon, Edit, Sunrise, Sun, Moon } from 'lucide-react';
 
-import type { TiffinLog, UserData } from "@/lib/types";
-import { MEAL_PRICES, USERS } from "@/lib/constants";
-import { cn } from "@/lib/utils";
+import type { TiffinLog } from '@/lib/types';
+import { MEAL_PRICES } from '@/lib/constants';
 import {
   Card,
   CardContent,
@@ -24,18 +23,23 @@ import {
   CardFooter,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+} from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from "@/components/ui/popover";
-import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
+} from '@/components/ui/popover';
+import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
 
 interface BillingSummaryProps {
-  user: UserData;
+  user: {
+    id: string;
+    displayName: string;
+    billingStartDate: number;
+    tiffins: TiffinLog;
+  };
   onBillingDateChange: (newDate: number) => void;
 }
 
@@ -49,13 +53,29 @@ const getBillingCycle = (
   let cycleEnd: Date;
 
   if (currentDay >= billingStartDate) {
-    cycleStart = new Date(today.getFullYear(), today.getMonth(), billingStartDate);
+    cycleStart = new Date(
+      today.getFullYear(),
+      today.getMonth(),
+      billingStartDate
+    );
     const nextMonth = addMonths(cycleStart, 1);
-    cycleEnd = new Date(nextMonth.getFullYear(), nextMonth.getMonth(), billingStartDate - 1);
+    cycleEnd = new Date(
+      nextMonth.getFullYear(),
+      nextMonth.getMonth(),
+      billingStartDate - 1
+    );
   } else {
     const prevMonth = subMonths(today, 1);
-    cycleStart = new Date(prevMonth.getFullYear(), prevMonth.getMonth(), billingStartDate);
-    cycleEnd = new Date(today.getFullYear(), today.getMonth(), billingStartDate - 1);
+    cycleStart = new Date(
+      prevMonth.getFullYear(),
+      prevMonth.getMonth(),
+      billingStartDate
+    );
+    cycleEnd = new Date(
+      today.getFullYear(),
+      today.getMonth(),
+      billingStartDate - 1
+    );
   }
 
   return { start: cycleStart, end: cycleEnd };
@@ -70,7 +90,7 @@ const calculateBill = (
   const mealCounts = { breakfast: 0, lunch: 0, dinner: 0 };
 
   daysInCycle.forEach((day) => {
-    const dayLog = tiffinLog[format(day, "yyyy-MM-dd")];
+    const dayLog = tiffinLog[format(day, 'yyyy-MM-dd')];
     if (dayLog) {
       if (dayLog.breakfast) {
         totalBill += MEAL_PRICES.breakfast;
@@ -101,7 +121,7 @@ const BillingSummary: FC<BillingSummaryProps> = ({
     user.tiffins || {},
     billingCycle
   );
-  
+
   const handleSave = () => {
     if (newBillingDate >= 1 && newBillingDate <= 31) {
       onBillingDateChange(newBillingDate);
@@ -113,32 +133,48 @@ const BillingSummary: FC<BillingSummaryProps> = ({
       <CardHeader>
         <CardTitle className="font-headline text-primary flex items-center justify-between">
           <span>Monthly Bill</span>
-          <span className="text-sm font-medium text-muted-foreground">{user.name}</span>
+          <span className="text-sm font-medium text-muted-foreground">
+            {user.displayName}
+          </span>
         </CardTitle>
         <CardDescription className="flex items-center gap-2">
           <CalendarIcon className="h-4 w-4" />
-          {format(billingCycle.start, "MMM d, yyyy")} -{" "}
-          {format(billingCycle.end, "MMM d, yyyy")}
+          {format(billingCycle.start, 'MMM d, yyyy')} -{' '}
+          {format(billingCycle.end, 'MMM d, yyyy')}
         </CardDescription>
       </CardHeader>
       <CardContent className="grid gap-4">
         <div className="flex justify-between items-center p-3 rounded-lg bg-primary/10">
-            <span className="font-bold text-lg text-primary">Total Bill</span>
-            <span className="font-bold text-2xl text-primary font-mono">₹{totalBill.toFixed(2)}</span>
+          <span className="font-bold text-lg text-primary">Total Bill</span>
+          <span className="font-bold text-2xl text-primary font-mono">
+            ₹{totalBill.toFixed(2)}
+          </span>
         </div>
         <div className="space-y-2 text-sm">
-            <div className="flex justify-between items-center">
-                <div className="flex items-center gap-2 text-muted-foreground"><Sunrise className="h-4 w-4 text-accent" /> Breakfasts</div>
-                <span>{mealCounts.breakfast} x ₹{MEAL_PRICES.breakfast}</span>
+          <div className="flex justify-between items-center">
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <Sunrise className="h-4 w-4 text-accent" /> Breakfasts
             </div>
-             <div className="flex justify-between items-center">
-                <div className="flex items-center gap-2 text-muted-foreground"><Sun className="h-4 w-4 text-accent" /> Lunches</div>
-                <span>{mealCounts.lunch} x ₹{MEAL_PRICES.lunch}</span>
+            <span>
+              {mealCounts.breakfast} x ₹{MEAL_PRICES.breakfast}
+            </span>
+          </div>
+          <div className="flex justify-between items-center">
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <Sun className="h-4 w-4 text-accent" /> Lunches
             </div>
-             <div className="flex justify-between items-center">
-                <div className="flex items-center gap-2 text-muted-foreground"><Moon className="h-4 w-4 text-accent" /> Dinners</div>
-                <span>{mealCounts.dinner} x ₹{MEAL_PRICES.dinner}</span>
+            <span>
+              {mealCounts.lunch} x ₹{MEAL_PRICES.lunch}
+            </span>
+          </div>
+          <div className="flex justify-between items-center">
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <Moon className="h-4 w-4 text-accent" /> Dinners
             </div>
+            <span>
+              {mealCounts.dinner} x ₹{MEAL_PRICES.dinner}
+            </span>
+          </div>
         </div>
       </CardContent>
       <CardFooter className="flex justify-end">
@@ -165,7 +201,9 @@ const BillingSummary: FC<BillingSummaryProps> = ({
                   min="1"
                   max="31"
                   value={newBillingDate}
-                  onChange={(e) => setNewBillingDate(parseInt(e.target.value, 10))}
+                  onChange={(e) =>
+                    setNewBillingDate(parseInt(e.target.value, 10))
+                  }
                   className="w-full"
                 />
               </div>

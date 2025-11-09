@@ -1,8 +1,4 @@
-import { USERS } from './constants';
-
-export type UserID = (typeof USERS)[number]["id"];
-
-export type MealType = "breakfast" | "lunch" | "dinner";
+export type MealType = 'breakfast' | 'lunch' | 'dinner';
 
 export type TiffinDay = {
   [key in MealType]: boolean;
@@ -14,6 +10,15 @@ export type TiffinLog = {
 
 export interface UserData {
   name: string;
+  email: string;
   billingStartDate: number;
-  tiffins: TiffinLog;
+}
+
+export interface TiffinOrder {
+  id: string;
+  userId: string;
+  date: string; // YYYY-MM-DD
+  breakfast: boolean;
+  lunch: boolean;
+  dinner: boolean;
 }
