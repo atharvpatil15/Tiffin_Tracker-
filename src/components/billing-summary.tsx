@@ -174,11 +174,11 @@ const BillingSummary: FC<BillingSummaryProps> = ({
         startY: 60,
         head: [['Item', 'Quantity', 'Rate', 'Amount']],
         body: [
-            ['Breakfasts', mealCounts.breakfast, `Rs. ${MEAL_PRICES.breakfast.toFixed(2)}`, (mealCounts.breakfast * MEAL_PRICES.breakfast).toFixed(2)],
-            ['Lunches', mealCounts.lunch, `Rs. ${MEAL_PRICES.lunch.toFixed(2)}`, (mealCounts.lunch * MEAL_PRICES.lunch).toFixed(2)],
-            ['Dinners', mealCounts.dinner, `Rs. ${MEAL_PRICES.dinner.toFixed(2)}`, (mealCounts.dinner * MEAL_PRICES.dinner).toFixed(2)],
+            ['Breakfasts', mealCounts.breakfast, `₹${MEAL_PRICES.breakfast.toFixed(2)}`, (mealCounts.breakfast * MEAL_PRICES.breakfast).toFixed(2)],
+            ['Lunches', mealCounts.lunch, `₹${MEAL_PRICES.lunch.toFixed(2)}`, (mealCounts.lunch * MEAL_PRICES.lunch).toFixed(2)],
+            ['Dinners', mealCounts.dinner, `₹${MEAL_PRICES.dinner.toFixed(2)}`, (mealCounts.dinner * MEAL_PRICES.dinner).toFixed(2)],
         ],
-        foot: [['Total', '', '', `Rs. ${totalBill.toFixed(2)}`]],
+        foot: [['Total', '', '', `₹${totalBill.toFixed(2)}`]],
         headStyles: { fillColor: [24, 95, 53] },
         footStyles: { fillColor: [220, 220, 220], textColor: [0, 0, 0], fontStyle: 'bold' },
         theme: 'striped',
@@ -186,7 +186,7 @@ const BillingSummary: FC<BillingSummaryProps> = ({
             doc.setFontSize(14);
             doc.setFont('helvetica', 'bold');
             doc.text('TOTAL BILL:', 130, data.cursor.y + 10);
-            doc.text(`Rs. ${totalBill.toFixed(2)}`, 165, data.cursor.y + 10);
+            doc.text(`₹${totalBill.toFixed(2)}`, 165, data.cursor.y + 10);
         }
     });
 
@@ -198,7 +198,7 @@ const BillingSummary: FC<BillingSummaryProps> = ({
         
         doc.autoTable({
             startY: 30,
-            head: [['Date', 'Breakfast', 'Lunch', 'Dinner', 'Day Total (Rs.)']],
+            head: [['Date', 'Breakfast', 'Lunch', 'Dinner', 'Day Total (₹)']],
             body: dailyBreakdown.map(d => [d.date, d.breakfast, d.lunch, d.dinner, d.dayTotal.toFixed(2)]),
             headStyles: { fillColor: [24, 95, 53] },
             theme: 'grid',
