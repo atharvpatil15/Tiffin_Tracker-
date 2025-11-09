@@ -13,13 +13,14 @@ import {
 } from '@/firebase';
 import { collection, doc, setDoc } from 'firebase/firestore';
 
-import type { UserData, MealType, TiffinDay, TiffinOrder } from '@/lib/types';
+import type { UserData, TiffinDay, TiffinOrder } from '@/lib/types';
 import TiffinCalendar from './tiffin-calendar';
 import BillingSummary from './billing-summary';
 import TiffinEditor from './tiffin-editor';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertTriangle } from 'lucide-react';
+import { Card } from '@/components/ui/card';
 
 const TiffinDashboard = () => {
   const { user, isUserLoading } = useUser();
@@ -48,13 +49,12 @@ const TiffinDashboard = () => {
     error: tiffinError,
   } = useCollection<TiffinOrder>(tiffinOrdersRef);
   
-  // Create user profile if it doesn't exist
   useEffect(() => {
     if (!isUserLoading && user && !isUserDocLoading && !userData) {
       const newUser: UserData = {
         name: user.displayName || 'New User',
         email: user.email || '',
-        billingStartDate: 1, // Default billing start date
+        billingStartDate: 1,
       };
       const userRef = doc(firestore, 'users', user.uid);
       setDoc(userRef, newUser).catch((e) =>
@@ -71,7 +71,7 @@ const TiffinDashboard = () => {
     if (!editorState.date || !user) return;
 
     const dateKey = format(editorState.date, 'yyyy-MM-dd');
-    const orderId = dateKey; // Use date as the document ID for simplicity
+    const orderId = dateKey;
     const tiffinDocRef = doc(
       firestore,
       'users',
@@ -113,27 +113,25 @@ const TiffinDashboard = () => {
 
   if (isLoading) {
     return (
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-        <div className="xl:col-span-3 lg:col-span-2">
-          <Skeleton className="h-[600px] w-full" />
-        </div>
-        <div className="lg:col-span-1 xl:col-span-1">
-          <Skeleton className="h-[400px] w-full" />
-        </div>
+      <div className="grid h-full grid-cols-1 gap-6 p-6 lg:grid-cols-2">
+        <Skeleton className="h-full w-full" />
+        <Skeleton className="h-[400px] w-full" />
       </div>
     );
   }
 
   if (tiffinError) {
     return (
-      <Alert variant="destructive">
-        <AlertTriangle className="h-4 w-4" />
-        <AlertTitle>Error</AlertTitle>
-        <AlertDescription>
-          {tiffinError.message ||
-            'Failed to load tiffin data. Check your connection and permissions.'}
-        </AlertDescription>
-      </Alert>
+      <div className="p-6">
+        <Alert variant="destructive">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertTitle>Error</AlertTitle>
+          <AlertDescription>
+            {tiffinError.message ||
+              'Failed to load tiffin data. Check your connection and permissions.'}
+          </AlertDescription>
+        </Alert>
+      </div>
     );
   }
   
@@ -141,16 +139,18 @@ const TiffinDashboard = () => {
 
   return (
     <>
-      <div className="mt-4 grid flex-1 items-start gap-4 lg:grid-cols-3 xl:grid-cols-4">
-        <div className="grid auto-rows-max items-start gap-4 lg:col-span-2 xl:col-span-3">
-          <TiffinCalendar
-            tiffinLog={tiffinLog}
-            onDayClick={handleDayClick}
-            month={month}
-            setMonth={setMonth}
-          />
-        </div>
-        <div className="lg:col-span-1 xl:col-span-1">
+      <div className="grid h-full grid-cols-1 items-start gap-6 p-4 md:p-6 lg:grid-cols-2">
+        <Card className="h-full w-full lg:flex lg:flex-col">
+          <div className="flex-1 p-2 sm:p-4">
+            <TiffinCalendar
+              tiffinLog={tiffinLog}
+              onDayClick={handleDayClick}
+              month={month}
+              setMonth={setMonth}
+            />
+          </div>
+        </Card>
+        <div className="space-y-6">
           {fullUserData && (
             <BillingSummary
               user={fullUserData}
