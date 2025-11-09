@@ -1,7 +1,7 @@
 'use client';
 
 import type { FC } from 'react';
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import {
   addMonths,
   eachDayOfInterval,
@@ -145,6 +145,8 @@ const BillingSummary: FC<BillingSummaryProps> = ({
   onBillingDateChange,
 }) => {
   const [newBillingDate, setNewBillingDate] = useState(user.billingStartDate);
+  const [isPopoverOpen, setIsPopoverOpen] = useState(false);
+
 
   const billingCycle = getBillingCycle(user.billingStartDate);
   const { totalBill, mealCounts, dailyBreakdown } = calculateBill(
@@ -155,7 +157,13 @@ const BillingSummary: FC<BillingSummaryProps> = ({
   const handleSave = () => {
     if (newBillingDate >= 1 && newBillingDate <= 31) {
       onBillingDateChange(newBillingDate);
+      setIsPopoverOpen(false); // Close popover on save
     }
+  };
+  
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    handleSave();
   };
 
   const handleDownloadBill = () => {
@@ -249,7 +257,7 @@ const BillingSummary: FC<BillingSummaryProps> = ({
               <Sunrise className="h-4 w-4 text-[hsl(var(--indicator-breakfast))]" /> Breakfasts
             </div>
             <span>
-              {mealCounts.breakfast} x ₹{MEAL_PRICES.breakfast}
+              {mealCounts.breakfast} x ₹{MEAL_PRICES.breakfast.toFixed(2)}
             </span>
           </div>
           <div className="flex justify-between items-center">
@@ -257,7 +265,7 @@ const BillingSummary: FC<BillingSummaryProps> = ({
               <Sun className="h-4 w-4 text-[hsl(var(--indicator-lunch))]" /> Lunches
             </div>
             <span>
-              {mealCounts.lunch} x ₹{MEAL_PRICES.lunch}
+              {mealCounts.lunch} x ₹{MEAL_PRICES.lunch.toFixed(2)}
             </span>
           </div>
           <div className="flex justify-between items-center">
@@ -265,7 +273,7 @@ const BillingSummary: FC<BillingSummaryProps> = ({
               <Moon className="h-4 w-4 text-[hsl(var(--indicator-dinner))]" /> Dinners
             </div>
             <span>
-              {mealCounts.dinner} x ₹{MEAL_PRICES.dinner}
+              {mealCounts.dinner} x ₹{MEAL_PRICES.dinner.toFixed(2)}
             </span>
           </div>
         </div>
@@ -275,7 +283,7 @@ const BillingSummary: FC<BillingSummaryProps> = ({
             <Download className="mr-2 h-4 w-4" />
             Download Bill
           </Button>
-        <Popover>
+        <Popover open={isPopoverOpen} onOpenChange={setIsPopoverOpen}>
           <PopoverTrigger asChild>
             <Button variant="ghost" size="sm" className="w-full sm:w-auto">
               <Edit className="mr-2 h-4 w-4" />
@@ -283,29 +291,31 @@ const BillingSummary: FC<BillingSummaryProps> = ({
             </Button>
           </PopoverTrigger>
           <PopoverContent className="w-60">
-            <div className="grid gap-4">
-              <div className="space-y-2">
-                <h4 className="font-medium leading-none">Billing Start Date</h4>
-                <p className="text-sm text-muted-foreground">
-                  Set the day your monthly cycle starts.
-                </p>
+             <form onSubmit={handleSubmit}>
+              <div className="grid gap-4">
+                <div className="space-y-2">
+                  <h4 className="font-medium leading-none">Billing Start Date</h4>
+                  <p className="text-sm text-muted-foreground">
+                    Set the day your monthly cycle starts.
+                  </p>
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="billing-date">Start Day (1-31)</Label>
+                  <Input
+                    id="billing-date"
+                    type="number"
+                    min="1"
+                    max="31"
+                    value={newBillingDate}
+                    onChange={(e) =>
+                      setNewBillingDate(parseInt(e.target.value, 10))
+                    }
+                    className="w-full"
+                  />
+                </div>
+                <Button type="submit">Save</Button>
               </div>
-              <div className="grid gap-2">
-                <Label htmlFor="billing-date">Start Day (1-31)</Label>
-                <Input
-                  id="billing-date"
-                  type="number"
-                  min="1"
-                  max="31"
-                  value={newBillingDate}
-                  onChange={(e) =>
-                    setNewBillingDate(parseInt(e.target.value, 10))
-                  }
-                  className="w-full"
-                />
-              </div>
-              <Button onClick={handleSave}>Save</Button>
-            </div>
+            </form>
           </PopoverContent>
         </Popover>
       </CardFooter>
