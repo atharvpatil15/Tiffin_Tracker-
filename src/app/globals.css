@@ -79,8 +79,29 @@
   }
   body {
     @apply bg-background text-foreground;
-    background-image: radial-gradient(circle at 10% 10%, hsl(var(--primary) / 0.25), transparent 30%),
-                      radial-gradient(circle at 90% 80%, hsl(var(--accent) / 0.25), transparent 30%);
-    background-color: hsl(var(--background));
   }
+}
+
+/* Falling Stars Animation */
+@keyframes fall {
+  0% {
+    transform: translateY(-10vh) rotate(0deg);
+    opacity: 1;
+  }
+  90% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(110vh) rotate(360deg);
+    opacity: 0;
+  }
+}
+
+.star {
+  position: absolute;
+  top: -10vh;
+  background-color: hsl(var(--accent) / 0.8);
+  border-radius: 50%;
+  animation: fall linear infinite;
+  box-shadow: 0 0 10px 2px hsl(var(--accent) / 0.5);
 }
