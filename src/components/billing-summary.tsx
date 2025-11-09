@@ -126,7 +126,7 @@ const calculateBill = (
       dayTotal += price;
     }
     
-    if (dayTotal > 0) {
+    if (dayTotal > 0 || isBefore(day, new Date())) {
       dailyBreakdown.push({
         date: format(day, 'MMM d, yyyy'),
         breakfast: breakfastTaken ? '✅' : '❌',
@@ -202,7 +202,7 @@ const BillingSummary: FC<BillingSummaryProps> = ({
             body: dailyBreakdown.map(d => [d.date, d.breakfast, d.lunch, d.dinner, d.dayTotal.toFixed(2)]),
             headStyles: { fillColor: [255, 99, 71] },
             theme: 'grid',
-            styles: { font: 'Arial', halign: 'center' },
+            styles: { font: 'helvetica', halign: 'center' },
             bodyStyles: {
               didParseCell: function (data: any) {
                 if (data.cell.text[0] === '✅') {
