@@ -37,7 +37,7 @@ const TiffinDashboard = () => {
     () => (firestore && user ? doc(firestore, 'users', user.uid) : null),
     [firestore, user]
   );
-  const { data: userData, isLoading: isUserDocLoading } = useDoc<UserData>(userDocRef);
+  const { data: userData, isLoading: isUserDocLoading, error: userDocError } = useDoc<UserData>(userDocRef);
 
   const tiffinOrdersRef = useMemoFirebase(
     () => (firestore && user ? collection(firestore, 'users', user.uid, 'tiffinOrders') : null),
@@ -51,19 +51,28 @@ const TiffinDashboard = () => {
   } = useCollection<TiffinOrder>(tiffinOrdersRef);
   
   useEffect(() => {
-    // This effect runs when user auth state is resolved and we have a user,
-    // but the user document loading is complete and no document was found.
-    // This indicates a new user who needs a profile created.
-    const createNewUserDoc = async () => {
-      if (!isUserLoading && user && !isUserDocLoading && !userData && userDocRef) {
+    const createNewUserDocIfNeeded = async () => {
+      // Conditions to create a new user doc:
+      // 1. Auth is resolved and we have a user object.
+      // 2. The user document loading is complete (`isUserDocLoading` is false).
+      // 3. The user document does not exist (`userData` is null).
+      // 4. There was no error fetching the document (`userDocError` is null).
+      // 5. We have a valid `userDocRef`.
+      if (!isUserLoading && user && !isUserDocLoading && !userData && !userDocError && userDocRef) {
+        console.log("Creating new user document for UID:", user.uid);
         const newUser: UserData = {
           name: user.displayName || user.email || 'New User',
           email: user.email || '',
-          billingStartDate: 1, // Default billing start date for new users
+          billingStartDate: 1, // Default billing start date
         };
         try {
-          // Use `setDoc` directly for this critical, one-time operation.
-          await setDoc(userDocRef, newUser, { merge: true });
+          // Use `setDoc` for this one-time creation. No `await` is needed if we trust the `useDoc` hook to update.
+          // However, for this critical step, `await` ensures it completes before any other logic might depend on it.
+          await setDoc(userDocRef, newUser);
+           toast({
+             title: 'Profile Created',
+             description: 'Your TiffinTrack profile has been set up.',
+           });
         } catch (error) {
            console.error("Failed to create user document:", error);
            toast({
@@ -74,8 +83,8 @@ const TiffinDashboard = () => {
         }
       }
     }
-    createNewUserDoc();
-  }, [user, isUserLoading, userData, isUserDocLoading, userDocRef, toast]);
+    createNewUserDocIfNeeded();
+  }, [user, isUserLoading, userData, isUserDocLoading, userDocError, userDocRef, toast]);
 
 
   const handleDayClick = (date: Date) => {
@@ -108,19 +117,27 @@ const TiffinDashboard = () => {
   };
 
   const handleBillingDateChange = async (newDate: number) => {
-    if (!userDocRef) return;
+    if (!userDocRef) {
+       toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'User profile not found. Cannot update billing date.',
+      });
+      return;
+    }
     try {
+      // Use `updateDoc` which is the correct operation for modifying an existing document.
       await updateDoc(userDocRef, { billingStartDate: newDate });
       toast({
         title: 'Success!',
-        description: `Billing start date changed to the ${newDate} of the month.`,
+        description: `Billing start date changed to the ${newDate}th of the month.`,
       });
     } catch (error) {
       console.error('Failed to update billing date:', error);
       toast({
         variant: 'destructive',
-        title: 'Error',
-        description: 'Failed to update billing date. Please try again.',
+        title: 'Update Failed',
+        description: 'Failed to save the new billing date. Please check your connection and try again.',
       });
     }
   };
@@ -136,8 +153,9 @@ const TiffinDashboard = () => {
       return acc;
     }, {} as { [date: string]: Partial<TiffinDay> });
   }, [tiffinData]);
-
-  const isLoading = isUserLoading || isUserDocLoading || isTiffinLoading;
+  
+  // Combined loading state. We are loading if auth is loading OR if user doc is loading.
+  const isLoading = isUserLoading || isUserDocLoading;
 
   if (isLoading) {
     return (
@@ -147,15 +165,16 @@ const TiffinDashboard = () => {
     );
   }
 
-  if (tiffinError) {
+  const combinedError = userDocError || tiffinError;
+  if (combinedError) {
     return (
       <div className="p-6">
         <Alert variant="destructive">
           <AlertTriangle className="h-4 w-4" />
           <AlertTitle>Error</AlertTitle>
           <AlertDescription>
-            {tiffinError.message ||
-              'Failed to load tiffin data. Check your connection and permissions.'}
+            {combinedError.message ||
+              'Failed to load data. Check your connection and permissions.'}
           </AlertDescription>
         </Alert>
       </div>
@@ -169,20 +188,26 @@ const TiffinDashboard = () => {
       <div className="grid h-full grid-cols-1 items-start gap-8 p-4 md:p-8 lg:grid-cols-5 xl:grid-cols-3">
         <div className="lg:col-span-3 xl:col-span-2 flex justify-center">
           <Card className="w-full max-w-2xl p-2 sm:p-4">
+            {isTiffinLoading ? <TiffinLoader text="Loading meals..."/> : (
               <TiffinCalendar
                 tiffinLog={tiffinLog}
                 onDayClick={handleDayClick}
                 month={month}
                 setMonth={setMonth}
               />
+            )}
           </Card>
         </div>
         <div className="lg:col-span-2 xl:col-span-1 space-y-6">
-          {fullUserData && (
+          {fullUserData ? (
             <BillingSummary
               user={fullUserData}
               onBillingDateChange={handleBillingDateChange}
             />
+          ) : (
+            <Card className="flex items-center justify-center p-6 h-64">
+                <p className="text-muted-foreground">Waiting for user data...</p>
+            </Card>
           )}
         </div>
       </div>
