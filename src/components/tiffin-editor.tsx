@@ -83,7 +83,7 @@ const TiffinEditor: FC<TiffinEditorProps> = ({
                 <Sunrise className="h-5 w-5 text-accent" />
                 Breakfast
               </div>
-              <span className="font-mono text-muted-foreground">₹{MEAL_PRICES.breakfast.toFixed(2)}</span>
+              <span className="font-mono text-muted-foreground">Rs. {MEAL_PRICES.breakfast.toFixed(2)}</span>
             </Label>
           </div>
           <div className="flex items-center space-x-3 rounded-md border p-4 transition-all has-[:checked]:bg-primary/10 has-[:checked]:border-primary">
@@ -100,7 +100,7 @@ const TiffinEditor: FC<TiffinEditorProps> = ({
                 <Sun className="h-5 w-5 text-accent" />
                 Lunch
               </div>
-              <span className="font-mono text-muted-foreground">₹{MEAL_PRICES.lunch.toFixed(2)}</span>
+              <span className="font-mono text-muted-foreground">Rs. {MEAL_PRICES.lunch.toFixed(2)}</span>
             </Label>
           </div>
           <div className="flex items-center space-x-3 rounded-md border p-4 transition-all has-[:checked]:bg-primary/10 has-[:checked]:border-primary">
@@ -117,7 +117,7 @@ const TiffinEditor: FC<TiffinEditorProps> = ({
                 <Moon className="h-5 w-5 text-accent" />
                 Dinner
               </div>
-              <span className="font-mono text-muted-foreground">₹{MEAL_PRICES.dinner.toFixed(2)}</span>
+              <span className="font-mono text-muted-foreground">Rs. {MEAL_PRICES.dinner.toFixed(2)}</span>
             </Label>
           </div>
         </div>
@@ -133,3 +133,5 @@ const TiffinEditor: FC<TiffinEditorProps> = ({
 };
 
 export default TiffinEditor;
+
+    

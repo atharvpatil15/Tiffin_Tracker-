@@ -178,17 +178,17 @@ const BillingSummary: FC<BillingSummaryProps> = ({
     doc.text(`Billed to: ${user.displayName}`, 20, 40);
     doc.text(`Billing Cycle: ${format(billingCycle.start, 'MMM d, yyyy')} - ${format(billingCycle.end, 'MMM d, yyyy')}`, 20, 48);
     
-    const breakfastAmount = (mealCounts.breakfast * MEAL_PRICES.breakfast).toFixed(2);
-    const lunchAmount = (mealCounts.lunch * MEAL_PRICES.lunch).toFixed(2);
-    const dinnerAmount = (mealCounts.dinner * MEAL_PRICES.dinner).toFixed(2);
+    const breakfastAmount = (mealCounts.breakfast * MEAL_PRICES.breakfast);
+    const lunchAmount = (mealCounts.lunch * MEAL_PRICES.lunch);
+    const dinnerAmount = (mealCounts.dinner * MEAL_PRICES.dinner);
 
     doc.autoTable({
         startY: 60,
         head: [['Item', 'Quantity', 'Rate', 'Amount']],
         body: [
-            ['Breakfasts', mealCounts.breakfast, `Rs. ${MEAL_PRICES.breakfast.toFixed(2)}`, breakfastAmount],
-            ['Lunches', mealCounts.lunch, `Rs. ${MEAL_PRICES.lunch.toFixed(2)}`, lunchAmount],
-            ['Dinners', mealCounts.dinner, `Rs. ${MEAL_PRICES.dinner.toFixed(2)}`, dinnerAmount],
+            ['Breakfasts', mealCounts.breakfast, `Rs. ${MEAL_PRICES.breakfast.toFixed(2)}`, `Rs. ${breakfastAmount.toFixed(2)}`],
+            ['Lunches', mealCounts.lunch, `Rs. ${MEAL_PRICES.lunch.toFixed(2)}`, `Rs. ${lunchAmount.toFixed(2)}`],
+            ['Dinners', mealCounts.dinner, `Rs. ${MEAL_PRICES.dinner.toFixed(2)}`, `Rs. ${dinnerAmount.toFixed(2)}`],
         ],
         foot: [['Total', '', '', `Rs. ${totalBill.toFixed(2)}`]],
         headStyles: { fillColor: [24, 95, 53] }, // Hindu Orange for header
@@ -252,7 +252,7 @@ const BillingSummary: FC<BillingSummaryProps> = ({
         <div className="flex justify-between items-center p-4 rounded-lg bg-primary/20">
           <span className="font-bold text-lg text-primary-foreground">Total Bill</span>
           <span className="font-bold text-3xl text-primary-foreground font-mono">
-            ₹{totalBill.toFixed(2)}
+            Rs. {totalBill.toFixed(2)}
           </span>
         </div>
         <div className="space-y-3 text-sm pt-2">
@@ -261,7 +261,7 @@ const BillingSummary: FC<BillingSummaryProps> = ({
               <Sunrise className="h-4 w-4 text-[hsl(var(--indicator-breakfast))]" /> Breakfasts
             </div>
             <span>
-              {mealCounts.breakfast} x ₹{MEAL_PRICES.breakfast.toFixed(2)}
+              {mealCounts.breakfast} x Rs. {MEAL_PRICES.breakfast.toFixed(2)}
             </span>
           </div>
           <div className="flex justify-between items-center">
@@ -269,7 +269,7 @@ const BillingSummary: FC<BillingSummaryProps> = ({
               <Sun className="h-4 w-4 text-[hsl(var(--indicator-lunch))]" /> Lunches
             </div>
             <span>
-              {mealCounts.lunch} x ₹{MEAL_PRICES.lunch.toFixed(2)}
+              {mealCounts.lunch} x Rs. {MEAL_PRICES.lunch.toFixed(2)}
             </span>
           </div>
           <div className="flex justify-between items-center">
@@ -277,7 +277,7 @@ const BillingSummary: FC<BillingSummaryProps> = ({
               <Moon className="h-4 w-4 text-[hsl(var(--indicator-dinner))]" /> Dinners
             </div>
             <span>
-              {mealCounts.dinner} x ₹{MEAL_PRICES.dinner.toFixed(2)}
+              {mealCounts.dinner} x Rs. {MEAL_PRICES.dinner.toFixed(2)}
             </span>
           </div>
         </div>
@@ -328,3 +328,5 @@ const BillingSummary: FC<BillingSummaryProps> = ({
 };
 
 export default BillingSummary;
+
+    
