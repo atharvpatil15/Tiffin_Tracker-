@@ -8,10 +8,9 @@ import {
   useCollection,
   useDoc,
   setDocumentNonBlocking,
-  updateDocumentNonBlocking,
   useMemoFirebase,
 } from '@/firebase';
-import { collection, doc, setDoc } from 'firebase/firestore';
+import { collection, doc, setDoc, updateDoc } from 'firebase/firestore';
 
 import type { UserData, TiffinDay, TiffinOrder } from '@/lib/types';
 import TiffinCalendar from './tiffin-calendar';
@@ -21,11 +20,13 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertTriangle } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import TiffinLoader from './tiffin-loader';
+import { useToast } from '@/hooks/use-toast';
 
 const TiffinDashboard = () => {
   const { user, isUserLoading } = useUser();
   const firestore = useFirestore();
   const [month, setMonth] = useState(new Date());
+  const { toast } = useToast();
 
   const [editorState, setEditorState] = useState<{
     open: boolean;
@@ -52,7 +53,7 @@ const TiffinDashboard = () => {
   useEffect(() => {
     if (!isUserLoading && user && !isUserDocLoading && !userData) {
       const newUser: UserData = {
-        name: user.displayName || 'New User',
+        name: user.displayName || user.email || 'New User',
         email: user.email || '',
         billingStartDate: 1,
       };
@@ -92,9 +93,22 @@ const TiffinDashboard = () => {
     setEditorState({ open: false, date: null });
   };
 
-  const handleBillingDateChange = (newDate: number) => {
+  const handleBillingDateChange = async (newDate: number) => {
     if (!userDocRef) return;
-    updateDocumentNonBlocking(userDocRef, { billingStartDate: newDate });
+    try {
+      await updateDoc(userDocRef, { billingStartDate: newDate });
+      toast({
+        title: 'Success!',
+        description: `Billing start date changed to the ${newDate} of the month.`,
+      });
+    } catch (error) {
+      console.error('Failed to update billing date:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'Failed to update billing date. Please try again.',
+      });
+    }
   };
 
   const tiffinLog = useMemo(() => {
