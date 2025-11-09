@@ -1,7 +1,7 @@
 "use client";
 
 import type { FC } from "react";
-import { DayPicker, type DayContentProps } from "react-day-picker";
+import { DayPicker, type DayContentProps, type Modifiers } from "react-day-picker";
 import { format } from "date-fns";
 
 import type { TiffinLog } from "@/lib/types";
@@ -15,9 +15,10 @@ interface TiffinCalendarProps {
   setMonth: (date: Date) => void;
 }
 
-function CustomDayContent(props: DayContentProps) {
-  const dayFormatted = format(props.date, "yyyy-MM-dd");
-  const meals = (props.activeModifiers.tiffinLog as any)?.[dayFormatted];
+function CustomDayContent(props: DayContentProps & { tiffinLog: TiffinLog }) {
+  const { date, activeModifiers } = props;
+  const dayFormatted = format(date, "yyyy-MM-dd");
+  const meals = props.tiffinLog[dayFormatted];
 
   const getGradientStyle = () => {
     if (!meals) return {};
@@ -31,7 +32,7 @@ function CustomDayContent(props: DayContentProps) {
     if (colors.length === 1) return { background: colors[0] };
 
     return {
-      background: `linear-gradient(45deg, ${colors.join(', ')})`,
+      background: `linear-gradient(45deg, ${colors.join(", ")})`,
     };
   };
 
@@ -41,16 +42,15 @@ function CustomDayContent(props: DayContentProps) {
     <div
       className={cn(
         "relative flex h-full w-full flex-col items-center justify-center",
-        props.activeModifiers.today && "font-bold",
+        activeModifiers.today && "font-bold",
         hasMeals && "rounded-md text-white"
       )}
       style={getGradientStyle()}
     >
-      <div className="z-10">{format(props.date, "d")}</div>
+      <div className="z-10">{format(date, "d")}</div>
     </div>
   );
 }
-
 
 const TiffinCalendar: FC<TiffinCalendarProps> = ({
   tiffinLog,
@@ -58,15 +58,20 @@ const TiffinCalendar: FC<TiffinCalendarProps> = ({
   month,
   setMonth,
 }) => {
+  const tiffinDaysModifier = (date: Date) => {
+    const dayFormatted = format(date, "yyyy-MM-dd");
+    const meals = tiffinLog[dayFormatted];
+    return !!meals && (meals.breakfast || meals.lunch || meals.dinner);
+  };
+  
   return (
       <DayPicker
         month={month}
         onMonthChange={setMonth}
         onDayClick={(day, modifiers) => !modifiers.disabled && onDayClick(day)}
-        modifiers={{ tiffinLog: tiffinLog as any }}
-        modifiersClassNames={{ tiffinLog: "" }}
+        modifiers={{ tiffinDay: tiffinDaysModifier }}
         components={{
-          DayContent: CustomDayContent,
+          DayContent: (props) => <CustomDayContent {...props} tiffinLog={tiffinLog} />,
         }}
         className="w-full"
         classNames={{
@@ -87,6 +92,7 @@ const TiffinCalendar: FC<TiffinCalendarProps> = ({
           day_today: "ring-2 ring-primary rounded-md",
           day_outside: "text-muted-foreground opacity-50",
           day_disabled: "text-muted-foreground opacity-50",
+          day_tiffinDay: "",
           caption: "flex justify-center pt-1 relative items-center",
           caption_label: "text-sm font-medium",
           nav: "space-x-1 flex items-center",
