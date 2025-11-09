@@ -51,18 +51,24 @@ const TiffinDashboard = () => {
   } = useCollection<TiffinOrder>(tiffinOrdersRef);
   
   useEffect(() => {
+    // This effect runs when user auth state is resolved and we have a user,
+    // but the user document loading is complete and no document was found.
+    // This indicates a new user who needs a profile created.
     if (!isUserLoading && user && !isUserDocLoading && !userData) {
       const newUser: UserData = {
         name: user.displayName || user.email || 'New User',
         email: user.email || '',
-        billingStartDate: 1,
+        billingStartDate: 1, // Default billing start date for new users
       };
-      const userRef = doc(firestore, 'users', user.uid);
-      setDoc(userRef, newUser).catch((e) =>
-        console.error('Failed to create user profile:', e)
-      );
+      
+      // Use setDoc to create the new user document.
+      // setDoc is non-blocking here as we don't need to wait for it.
+      if (userDocRef) {
+        setDocumentNonBlocking(userDocRef, newUser, {});
+      }
     }
-  }, [user, isUserLoading, userData, isUserDocLoading, firestore]);
+  }, [user, isUserLoading, userData, isUserDocLoading, firestore, userDocRef]);
+
 
   const handleDayClick = (date: Date) => {
     setEditorState({ open: true, date: startOfDay(date) });
@@ -96,6 +102,7 @@ const TiffinDashboard = () => {
   const handleBillingDateChange = async (newDate: number) => {
     if (!userDocRef) return;
     try {
+      // Use await here to ensure the update completes before giving feedback
       await updateDoc(userDocRef, { billingStartDate: newDate });
       toast({
         title: 'Success!',
