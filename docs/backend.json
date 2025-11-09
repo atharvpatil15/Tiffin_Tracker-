@@ -1,0 +1,124 @@
+{
+  "entities": {
+    "User": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "User",
+      "type": "object",
+      "description": "Represents a user of the TiffinTrack application.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the user."
+        },
+        "email": {
+          "type": "string",
+          "description": "User's email address.",
+          "format": "email"
+        },
+        "displayName": {
+          "type": "string",
+          "description": "User's display name."
+        },
+        "monthlyStartDate": {
+          "type": "string",
+          "description": "The custom start date for the user's monthly tiffin cycle, stored as YYYY-MM-DD.",
+          "format": "date"
+        }
+      },
+      "required": [
+        "id",
+        "email",
+        "displayName",
+        "monthlyStartDate"
+      ]
+    },
+    "TiffinOrder": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "TiffinOrder",
+      "type": "object",
+      "description": "Represents a single tiffin order for a specific user on a specific date.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the tiffin order."
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to User. (Relationship: User 1:N TiffinOrder)"
+        },
+        "date": {
+          "type": "string",
+          "description": "The date of the tiffin order, stored as YYYY-MM-DD.",
+          "format": "date"
+        },
+        "breakfast": {
+          "type": "boolean",
+          "description": "Indicates whether breakfast was ordered for this date."
+        },
+        "lunch": {
+          "type": "boolean",
+          "description": "Indicates whether lunch was ordered for this date."
+        },
+        "dinner": {
+          "type": "boolean",
+          "description": "Indicates whether dinner was ordered for this date."
+        }
+      },
+      "required": [
+        "id",
+        "userId",
+        "date",
+        "breakfast",
+        "lunch",
+        "dinner"
+      ]
+    }
+  },
+  "auth": {
+    "providers": [
+      "password",
+      "anonymous"
+    ]
+  },
+  "firestore": {
+    "structure": [
+      {
+        "path": "/users/{userId}",
+        "definition": {
+          "entityName": "User",
+          "schema": {
+            "$ref": "#/backend/entities/User"
+          },
+          "description": "Stores user profiles.  Path-based ownership. The `userId` parameter identifies the user.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier of the user."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/tiffinOrders/{tiffinOrderId}",
+        "definition": {
+          "entityName": "TiffinOrder",
+          "schema": {
+            "$ref": "#/backend/entities/TiffinOrder"
+          },
+          "description": "Stores tiffin orders for a specific user. Path-based ownership. The `userId` parameter identifies the user, and `tiffinOrderId` identifies the order.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier of the user."
+            },
+            {
+              "name": "tiffinOrderId",
+              "description": "The unique identifier of the tiffin order."
+            }
+          ]
+        }
+      }
+    ],
+    "reasoning": "The Firestore structure is designed to optimize for authorization independence, clarity, and scalability, aligning with the core principles outlined. We are using path-based ownership for user data and tiffin orders. The structure prioritizes ease of querying and secure rule creation.\n\n*   **Users Collection:**  The `users` collection stores user profiles. This ensures that all documents within the collection share the same security posture, simplifying rules.\n*   **Tiffin Orders Subcollection:**  Each user has a subcollection `tiffinOrders` to store their orders. This establishes clear ownership, eliminating the need for complex `get()` calls in security rules.\n\nThis design ensures authorization independence. Each `tiffinOrder` document is located within a user-specific subcollection. This structure inherently enforces that only the authenticated user (`request.auth.uid`) can access or modify their own tiffin order data, due to the path-based ownership. This means no `get()` calls are required to verify authorization, enabling atomic operations. QAPs are achieved by segregating data into user-owned subcollections, enabling secure list operations within each user's scope."
+  }
+}
