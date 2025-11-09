@@ -12,7 +12,7 @@ import {
   startOfMonth,
   subMonths,
 } from 'date-fns';
-import { CalendarIcon, Edit, Sunrise, Sun, Moon } from 'lucide-react';
+import { CalendarIcon, Edit, Sunrise, Sun, Moon, Download } from 'lucide-react';
 
 import type { TiffinLog } from '@/lib/types';
 import { MEAL_PRICES } from '@/lib/constants';
@@ -128,8 +128,28 @@ const BillingSummary: FC<BillingSummaryProps> = ({
     }
   };
 
+  const handleDownloadBill = () => {
+    let billContent = `Tiffin Bill for ${user.displayName}\n`;
+    billContent += `Billing Cycle: ${format(billingCycle.start, 'MMM d, yyyy')} - ${format(billingCycle.end, 'MMM d, yyyy')}\n\n`;
+    billContent += '------------------------------------\n';
+    billContent += `Breakfasts: ${mealCounts.breakfast} x ₹${MEAL_PRICES.breakfast} = ₹${(mealCounts.breakfast * MEAL_PRICES.breakfast).toFixed(2)}\n`;
+    billContent += `Lunches:    ${mealCounts.lunch} x ₹${MEAL_PRICES.lunch} = ₹${(mealCounts.lunch * MEAL_PRICES.lunch).toFixed(2)}\n`;
+    billContent += `Dinners:    ${mealCounts.dinner} x ₹${MEAL_PRICES.dinner} = ₹${(mealCounts.dinner * MEAL_PRICES.dinner).toFixed(2)}\n`;
+    billContent += '------------------------------------\n';
+    billContent += `TOTAL BILL: ₹${totalBill.toFixed(2)}\n`;
+
+    const blob = new Blob([billContent], { type: 'text/plain;charset=utf-8' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `TiffinBill-${format(new Date(), 'yyyy-MM-dd')}.txt`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+
   return (
-    <Card className="w-full lg:w-96 shadow-lg">
+    <Card className="w-full">
       <CardHeader>
         <CardTitle className="font-headline text-primary flex items-center justify-between">
           <span>Monthly Bill</span>
@@ -144,16 +164,16 @@ const BillingSummary: FC<BillingSummaryProps> = ({
         </CardDescription>
       </CardHeader>
       <CardContent className="grid gap-4">
-        <div className="flex justify-between items-center p-3 rounded-lg bg-primary/10">
-          <span className="font-bold text-lg text-primary">Total Bill</span>
-          <span className="font-bold text-2xl text-primary font-mono">
+        <div className="flex justify-between items-center p-4 rounded-lg bg-primary/20">
+          <span className="font-bold text-lg text-primary-foreground">Total Bill</span>
+          <span className="font-bold text-3xl text-primary-foreground font-mono">
             ₹{totalBill.toFixed(2)}
           </span>
         </div>
-        <div className="space-y-2 text-sm">
+        <div className="space-y-3 text-sm pt-2">
           <div className="flex justify-between items-center">
             <div className="flex items-center gap-2 text-muted-foreground">
-              <Sunrise className="h-4 w-4 text-accent" /> Breakfasts
+              <Sunrise className="h-4 w-4 text-[hsl(var(--indicator-breakfast))]" /> Breakfasts
             </div>
             <span>
               {mealCounts.breakfast} x ₹{MEAL_PRICES.breakfast}
@@ -161,7 +181,7 @@ const BillingSummary: FC<BillingSummaryProps> = ({
           </div>
           <div className="flex justify-between items-center">
             <div className="flex items-center gap-2 text-muted-foreground">
-              <Sun className="h-4 w-4 text-accent" /> Lunches
+              <Sun className="h-4 w-4 text-[hsl(var(--indicator-lunch))]" /> Lunches
             </div>
             <span>
               {mealCounts.lunch} x ₹{MEAL_PRICES.lunch}
@@ -169,7 +189,7 @@ const BillingSummary: FC<BillingSummaryProps> = ({
           </div>
           <div className="flex justify-between items-center">
             <div className="flex items-center gap-2 text-muted-foreground">
-              <Moon className="h-4 w-4 text-accent" /> Dinners
+              <Moon className="h-4 w-4 text-[hsl(var(--indicator-dinner))]" /> Dinners
             </div>
             <span>
               {mealCounts.dinner} x ₹{MEAL_PRICES.dinner}
@@ -177,10 +197,14 @@ const BillingSummary: FC<BillingSummaryProps> = ({
           </div>
         </div>
       </CardContent>
-      <CardFooter className="flex justify-end">
+      <CardFooter className="flex-col sm:flex-row justify-between items-center gap-2">
+         <Button variant="outline" onClick={handleDownloadBill} className="w-full sm:w-auto">
+            <Download className="mr-2 h-4 w-4" />
+            Download Bill
+          </Button>
         <Popover>
           <PopoverTrigger asChild>
-            <Button variant="ghost" size="sm">
+            <Button variant="ghost" size="sm" className="w-full sm:w-auto">
               <Edit className="mr-2 h-4 w-4" />
               Change Billing Date
             </Button>

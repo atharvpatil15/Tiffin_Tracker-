@@ -1,7 +1,7 @@
 'use client';
 
 import TiffinDashboard from '@/components/tiffin-dashboard';
-import { UtensilsCrossed } from 'lucide-react';
+import { UtensilsCrossed, LogOut } from 'lucide-react';
 import AuthWrapper from '@/components/auth-wrapper';
 import { useAuth, useUser } from '@/firebase';
 import { Button } from '@/components/ui/button';
@@ -18,20 +18,21 @@ export default function Home() {
 
   return (
     <AuthWrapper>
-      <div className="flex h-screen w-full flex-col bg-background">
-        <header className="sticky top-0 z-30 flex h-16 shrink-0 items-center justify-between border-b bg-background/95 px-4 backdrop-blur-sm md:px-6">
+      <div className="flex h-screen w-full flex-col bg-transparent">
+        <header className="sticky top-0 z-30 flex h-20 shrink-0 items-center justify-between border-b border-white/10 bg-black/30 px-4 backdrop-blur-lg md:px-6">
           <div className="flex items-center gap-3">
-            <UtensilsCrossed className="h-7 w-7 text-primary" />
-            <h1 className="text-2xl font-bold font-headline text-foreground">
+            <UtensilsCrossed className="h-8 w-8 text-primary" />
+            <h1 className="text-3xl font-bold font-headline text-white">
               TiffinTrack
             </h1>
           </div>
           {user && (
             <div className="flex items-center gap-4">
-              <span className="text-sm text-muted-foreground hidden sm:inline">
+              <span className="hidden text-sm text-muted-foreground sm:inline">
                 {user.displayName || user.email}
               </span>
-              <Button variant="outline" size="sm" onClick={handleSignOut}>
+              <Button variant="ghost" size="sm" onClick={handleSignOut}>
+                 <LogOut className="mr-2 h-4 w-4" />
                 Sign Out
               </Button>
             </div>

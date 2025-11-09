@@ -29,10 +29,10 @@ function CustomDayContent(props: DayContentProps) {
     >
       <div className="z-10">{format(props.date, "d")}</div>
       {meals && (
-        <div className="absolute bottom-1.5 z-10 flex w-full justify-center gap-1">
-          {meals.breakfast && <Sunrise className="h-3 w-3 text-accent" />}
-          {meals.lunch && <Sun className="h-3 w-3 text-accent" />}
-          {meals.dinner && <Moon className="h-3 w-3 text-accent" />}
+        <div className="absolute bottom-1.5 z-10 flex w-full justify-center gap-1.5">
+          {meals.breakfast && <div className="h-1.5 w-1.5 rounded-full bg-[hsl(var(--indicator-breakfast))]" />}
+          {meals.lunch && <div className="h-1.5 w-1.5 rounded-full bg-[hsl(var(--indicator-lunch))]" />}
+          {meals.dinner && <div className="h-1.5 w-1.5 rounded-full bg-[hsl(var(--indicator-dinner))]" />}
         </div>
       )}
     </div>
@@ -58,16 +58,16 @@ const TiffinCalendar: FC<TiffinCalendarProps> = ({
       }}
       className="h-full w-full"
       classNames={{
-        months: "h-full",
+        months: "h-full flex flex-col",
         month: "flex flex-col h-full",
         table: "flex-1 w-full border-collapse",
-        head_row: "flex",
-        head_cell: "w-full text-muted-foreground font-normal text-sm",
-        row: "flex w-full mt-2",
-        cell: "flex-1 h-full p-0 text-center text-sm relative focus-within:relative focus-within:z-20",
+        head_row: "grid grid-cols-7",
+        head_cell: "text-muted-foreground font-normal text-sm",
+        row: "grid grid-cols-7 w-full mt-2",
+        cell: "flex-1 h-full p-0 text-center text-sm relative focus-within:relative focus-within:z-20 aspect-square",
         day: cn(
           buttonVariants({ variant: "ghost" }),
-          "h-full w-full p-0 font-normal aria-selected:opacity-100 rounded-lg flex-1"
+          "h-full w-full p-0 font-normal aria-selected:opacity-100 rounded-lg flex-1 hover:bg-white/10"
         ),
         day_selected:
           "bg-accent/20 text-accent-foreground rounded-lg focus:bg-accent/30 focus:text-primary",
@@ -75,7 +75,7 @@ const TiffinCalendar: FC<TiffinCalendarProps> = ({
         day_outside: "text-muted-foreground opacity-50",
         day_disabled: "text-muted-foreground opacity-50",
         caption: "flex justify-center pt-1 relative items-center",
-        caption_label: "text-lg font-medium font-headline",
+        caption_label: "text-xl font-medium font-headline",
         nav: "space-x-1 flex items-center",
         nav_button: cn(
           buttonVariants({ variant: "outline" }),

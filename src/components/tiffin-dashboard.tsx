@@ -135,12 +135,12 @@ const TiffinDashboard = () => {
     );
   }
   
-  const fullUserData = userData ? { ...userData, tiffins: tiffinLog, id: user!.uid, displayName: user!.displayName || '' } : null;
+  const fullUserData = userData ? { ...userData, tiffins: tiffinLog, id: user!.uid, displayName: user!.displayName || user!.email || '' } : null;
 
   return (
     <>
-      <div className="grid h-full grid-cols-1 items-start gap-6 p-4 md:p-6 lg:grid-cols-2">
-        <Card className="h-full w-full lg:flex lg:flex-col">
+      <div className="grid h-full grid-cols-1 items-start gap-8 p-4 md:p-8 lg:grid-cols-2">
+        <Card className="h-full w-full flex flex-col">
           <div className="flex-1 p-2 sm:p-4">
             <TiffinCalendar
               tiffinLog={tiffinLog}
