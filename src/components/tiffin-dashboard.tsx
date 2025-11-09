@@ -34,13 +34,13 @@ const TiffinDashboard = () => {
   }>({ open: false, date: null });
 
   const userDocRef = useMemoFirebase(
-    () => (user ? doc(firestore, 'users', user.uid) : null),
+    () => (firestore && user ? doc(firestore, 'users', user.uid) : null),
     [firestore, user]
   );
   const { data: userData, isLoading: isUserDocLoading } = useDoc<UserData>(userDocRef);
 
   const tiffinOrdersRef = useMemoFirebase(
-    () => (user ? collection(firestore, 'users', user.uid, 'tiffinOrders') : null),
+    () => (firestore && user ? collection(firestore, 'users', user.uid, 'tiffinOrders') : null),
     [firestore, user]
   );
 
@@ -54,22 +54,28 @@ const TiffinDashboard = () => {
     // This effect runs when user auth state is resolved and we have a user,
     // but the user document loading is complete and no document was found.
     // This indicates a new user who needs a profile created.
-    if (!isUserLoading && user && !isUserDocLoading && !userData) {
-      const newUser: UserData = {
-        name: user.displayName || user.email || 'New User',
-        email: user.email || '',
-        billingStartDate: 1, // Default billing start date for new users
-      };
-      
-      // Use setDoc to create the new user document.
-      // A non-blocking call is acceptable here, but it must be correct.
-      // Using { merge: true } is safer as it won't overwrite existing data
-      // if there's a race condition, and it correctly creates the document.
-      if (userDocRef) {
-        setDocumentNonBlocking(userDocRef, newUser, { merge: true });
+    const createNewUserDoc = async () => {
+      if (!isUserLoading && user && !isUserDocLoading && !userData && userDocRef) {
+        const newUser: UserData = {
+          name: user.displayName || user.email || 'New User',
+          email: user.email || '',
+          billingStartDate: 1, // Default billing start date for new users
+        };
+        try {
+          // Use `setDoc` directly for this critical, one-time operation.
+          await setDoc(userDocRef, newUser, { merge: true });
+        } catch (error) {
+           console.error("Failed to create user document:", error);
+           toast({
+                variant: 'destructive',
+                title: 'Error creating profile',
+                description: 'Could not save your user profile. Please refresh and try again.',
+           });
+        }
       }
     }
-  }, [user, isUserLoading, userData, isUserDocLoading, firestore, userDocRef]);
+    createNewUserDoc();
+  }, [user, isUserLoading, userData, isUserDocLoading, userDocRef, toast]);
 
 
   const handleDayClick = (date: Date) => {
@@ -77,7 +83,7 @@ const TiffinDashboard = () => {
   };
 
   const handleEditorSave = (meals: TiffinDay) => {
-    if (!editorState.date || !user) return;
+    if (!editorState.date || !user || !firestore) return;
 
     const dateKey = format(editorState.date, 'yyyy-MM-dd');
     const orderId = dateKey;
@@ -104,7 +110,6 @@ const TiffinDashboard = () => {
   const handleBillingDateChange = async (newDate: number) => {
     if (!userDocRef) return;
     try {
-      // Use await here to ensure the update completes before giving feedback
       await updateDoc(userDocRef, { billingStartDate: newDate });
       toast({
         title: 'Success!',
@@ -157,7 +162,7 @@ const TiffinDashboard = () => {
     );
   }
   
-  const fullUserData = userData ? { ...userData, tiffins: tiffinLog, id: user!.uid, displayName: user!.displayName || user!.email || '' } : null;
+  const fullUserData = userData && user ? { ...userData, tiffins: tiffinLog, id: user.uid, displayName: user.displayName || user.email || '' } : null;
 
   return (
     <>
