@@ -47,7 +47,7 @@ export default function LoginPage() {
           </h1>
           <p className="mt-2 text-muted-foreground">
             Sign in to manage your tiffin service.
-          p>
+          </p>
         </div>
 
         <div className="mt-8">
