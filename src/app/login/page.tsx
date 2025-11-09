@@ -1,17 +1,50 @@
 'use client';
 
-import { useAuth } from '@/firebase';
-import { GoogleAuthProvider, signInWithRedirect } from 'firebase/auth';
-import { Button } from '@/components/ui/button';
-import { UtensilsCrossed, LogIn } from 'lucide-react';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useUser } from '@/firebase/provider';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+import {
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+} from 'firebase/auth';
+
+import { Button } from '@/components/ui/button';
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form';
+import { Input } from '@/components/ui/input';
+import { useToast } from '@/hooks/use-toast';
+import { useAuth, useUser } from '@/firebase';
+import { UtensilsCrossed, LogIn } from 'lucide-react';
+
+const formSchema = z.object({
+  email: z.string().email({ message: 'Invalid email address.' }),
+  password: z
+    .string()
+    .min(6, { message: 'Password must be at least 6 characters.' }),
+});
 
 export default function LoginPage() {
   const auth = useAuth();
   const { user, isUserLoading } = useUser();
   const router = useRouter();
+  const { toast } = useToast();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const form = useForm<z.infer<typeof formSchema>>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      email: '',
+      password: '',
+    },
+  });
 
   useEffect(() => {
     if (!isUserLoading && user) {
@@ -19,13 +52,35 @@ export default function LoginPage() {
     }
   }, [user, isUserLoading, router]);
 
-  const handleGoogleSignIn = async () => {
+  const handleAuthAction = async (
+    action: 'signIn' | 'signUp',
+    values: z.infer<typeof formSchema>
+  ) => {
     if (!auth) return;
-    const provider = new GoogleAuthProvider();
+    setIsSubmitting(true);
+    const { email, password } = values;
     try {
-      await signInWithRedirect(auth, provider);
-    } catch (error) {
-      console.error('Error signing in with Google: ', error);
+      if (action === 'signIn') {
+        await signInWithEmailAndPassword(auth, email, password);
+        toast({ title: 'Signed in successfully!' });
+      } else {
+        await createUserWithEmailAndPassword(auth, email, password);
+        toast({ title: 'Account created successfully!' });
+      }
+      // Redirect is handled by the useEffect hook
+    } catch (error: any) {
+      toast({
+        variant: 'destructive',
+        title: 'Authentication Failed',
+        description:
+          error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password'
+            ? 'Invalid email or password.'
+            : error.code === 'auth/email-already-in-use'
+            ? 'An account with this email already exists.'
+            : 'An unexpected error occurred. Please try again.',
+      });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -46,24 +101,70 @@ export default function LoginPage() {
             TiffinTrack
           </h1>
           <p className="mt-2 text-muted-foreground">
-            Sign in to manage your tiffin service.
+            Sign in or create an account to manage your tiffin service.
           </p>
         </div>
 
-        <div className="mt-8">
-          <Button
-            onClick={handleGoogleSignIn}
-            className="w-full"
-            variant="default"
-            size="lg"
+        <Form {...form}>
+          <form
+            onSubmit={form.handleSubmit((values) =>
+              handleAuthAction('signIn', values)
+            )}
+            className="mt-8 space-y-4"
           >
-            <LogIn className="mr-2 h-5 w-5" />
-            Sign In with Google
-          </Button>
-        </div>
-         <p className="mt-8 px-8 text-center text-sm text-muted-foreground">
-            By signing in, you agree to our Terms of Service and Privacy Policy.
-          </p>
+            <FormField
+              control={form.control}
+              name="email"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Email</FormLabel>
+                  <FormControl>
+                    <Input placeholder="name@example.com" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="password"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Password</FormLabel>
+                  <FormControl>
+                    <Input type="password" placeholder="••••••••" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <div className="flex flex-col space-y-2 pt-2 sm:flex-row sm:space-y-0 sm:space-x-2">
+              <Button
+                type="submit"
+                className="w-full"
+                disabled={isSubmitting}
+              >
+                <LogIn className="mr-2 h-5 w-5" />
+                Sign In
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full"
+                onClick={form.handleSubmit((values) =>
+                  handleAuthAction('signUp', values)
+                )}
+                disabled={isSubmitting}
+              >
+                Sign Up
+              </Button>
+            </div>
+          </form>
+        </Form>
+        <p className="mt-8 px-8 text-center text-sm text-muted-foreground">
+          By signing in or creating an account, you agree to our Terms of
+          Service and Privacy Policy.
+        </p>
       </div>
     </div>
   );
