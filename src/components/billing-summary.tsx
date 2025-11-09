@@ -129,9 +129,9 @@ const calculateBill = (
     if (dayTotal > 0 || isBefore(day, new Date())) {
       dailyBreakdown.push({
         date: format(day, 'MMM d, yyyy'),
-        breakfast: breakfastTaken ? '✅' : '❌',
-        lunch: lunchTaken ? '✅' : '❌',
-        dinner: dinnerTaken ? '✅' : '❌',
+        breakfast: breakfastTaken ? 'Yes' : 'No',
+        lunch: lunchTaken ? 'Yes' : 'No',
+        dinner: dinnerTaken ? 'Yes' : 'No',
         dayTotal: dayTotal,
       });
     }
@@ -179,7 +179,7 @@ const BillingSummary: FC<BillingSummaryProps> = ({
             ['Dinners', mealCounts.dinner, `Rs. ${MEAL_PRICES.dinner.toFixed(2)}`, (mealCounts.dinner * MEAL_PRICES.dinner).toFixed(2)],
         ],
         foot: [['Total', '', '', `Rs. ${totalBill.toFixed(2)}`]],
-        headStyles: { fillColor: [255, 99, 71] },
+        headStyles: { fillColor: [24, 95, 53] },
         footStyles: { fillColor: [220, 220, 220], textColor: [0, 0, 0], fontStyle: 'bold' },
         theme: 'striped',
         didDrawPage: (data: any) => {
@@ -200,15 +200,16 @@ const BillingSummary: FC<BillingSummaryProps> = ({
             startY: 30,
             head: [['Date', 'Breakfast', 'Lunch', 'Dinner', 'Day Total (Rs.)']],
             body: dailyBreakdown.map(d => [d.date, d.breakfast, d.lunch, d.dinner, d.dayTotal.toFixed(2)]),
-            headStyles: { fillColor: [255, 99, 71] },
+            headStyles: { fillColor: [24, 95, 53] },
             theme: 'grid',
             styles: { font: 'helvetica', halign: 'center' },
             bodyStyles: {
               didParseCell: function (data: any) {
-                if (data.cell.text[0] === '✅') {
+                if (data.cell.text[0] === 'Yes') {
                   data.cell.styles.textColor = '#28a745';
+                  data.cell.styles.fontStyle = 'bold';
                 }
-                if (data.cell.text[0] === '❌') {
+                if (data.cell.text[0] === 'No') {
                   data.cell.styles.textColor = '#dc3545';
                 }
               },
