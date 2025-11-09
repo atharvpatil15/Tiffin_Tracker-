@@ -56,15 +56,15 @@ const TiffinCalendar: FC<TiffinCalendarProps> = ({
       components={{
         DayContent: CustomDayContent,
       }}
-      className="h-full w-full"
+      className="w-full"
       classNames={{
-        months: "h-full flex flex-col",
-        month: "flex flex-col h-full",
-        table: "flex-1 w-full border-collapse",
+        months: "flex flex-col",
+        month: "flex flex-col",
+        table: "w-full border-collapse",
         head_row: "grid grid-cols-7",
         head_cell: "text-muted-foreground font-normal text-sm",
         row: "grid grid-cols-7 w-full mt-2",
-        cell: "flex-1 h-full p-0 text-center text-sm relative focus-within:relative focus-within:z-20 aspect-square",
+        cell: "flex-1 p-0 text-center text-sm relative focus-within:relative focus-within:z-20 aspect-square",
         day: cn(
           buttonVariants({ variant: "ghost" }),
           "h-full w-full p-0 font-normal aria-selected:opacity-100 rounded-lg flex-1 hover:bg-white/10"
