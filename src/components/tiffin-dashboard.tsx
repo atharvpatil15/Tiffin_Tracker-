@@ -59,41 +59,34 @@ const TiffinDashboard = () => {
   } = useCollection<TiffinOrder>(tiffinOrdersRef);
 
   useEffect(() => {
-    // Guard against running this effect until all dependencies are ready.
     if (isUserLoading || isUserDocLoading || !user || !userDocRef) {
       return;
     }
 
-    // This effect should only run once the user is loaded and we have checked for the user document.
-    // If userData is null, it means the document doesn't exist, and we should create it.
     if (userData === null) {
       console.log('User document not found. Creating a new one...');
       const newUser: UserData = {
         name: user.displayName || user.email || 'New User',
         email: user.email || '',
-        billingStartDate: 1, // Default billing start date
+        billingStartDate: 1,
       };
 
-      // Use a separate async function to handle the creation.
-      const createUserDocument = async () => {
-        try {
-          // Use `setDoc` which is appropriate for creating a document with a specific ID.
-          await setDoc(userDocRef, newUser);
+      setDoc(userDocRef, newUser, { merge: true })
+        .then(() => {
           toast({
             title: 'Profile Created',
-            description: 'Your TiffinTrack profile has been set up successfully.',
+            description:
+              'Your TiffinTrack profile has been set up successfully.',
           });
-        } catch (error) {
+        })
+        .catch((error) => {
           console.error('Failed to create user document:', error);
           toast({
             variant: 'destructive',
             title: 'Error Creating Profile',
             description: 'Could not save your user profile. Please try again.',
           });
-        }
-      };
-
-      createUserDocument();
+        });
     }
   }, [user, userData, isUserLoading, isUserDocLoading, userDocRef, toast]);
 
@@ -137,7 +130,6 @@ const TiffinDashboard = () => {
       return;
     }
     try {
-      // Use `updateDoc` which is the correct operation for modifying an existing document.
       await updateDoc(userDocRef, { billingStartDate: newDate });
       toast({
         title: 'Success!',
@@ -166,7 +158,6 @@ const TiffinDashboard = () => {
     }, {} as { [date: string]: Partial<TiffinDay> });
   }, [tiffinData]);
 
-  // Combined loading state.
   const isLoading = isUserLoading || isUserDocLoading;
 
   if (isLoading) {
