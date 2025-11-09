@@ -8,7 +8,7 @@
     --foreground: 210 20% 98%;
     
     /* Glassmorphism Card */
-    --card-background: 220 13% 15% / 0.6; /* Semi-transparent dark grey */
+    --card-background: 220 13% 15% / 0.1; /* Semi-transparent dark grey */
     --card: 220 13% 15%; /* Fallback */
     --card-foreground: 210 20% 98%;
     
@@ -52,7 +52,7 @@
     /* Keeping dark theme same as root for this design */
     --background: 224 71.4% 4.1%;
     --foreground: 210 20% 98%;
-    --card-background: 220 13% 15% / 0.6;
+    --card-background: 220 13% 15% / 0.1;
     --card: 220 13% 15%;
     --card-foreground: 210 20% 98%;
     --popover: 224 71.4% 4.1%;
