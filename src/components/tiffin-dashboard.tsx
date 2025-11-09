@@ -7,7 +7,6 @@ import {
   useUser,
   useCollection,
   useDoc,
-  setDocumentNonBlocking,
   useMemoFirebase,
 } from '@/firebase';
 import { collection, doc, setDoc, updateDoc } from 'firebase/firestore';
@@ -21,6 +20,7 @@ import { AlertTriangle } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import TiffinLoader from './tiffin-loader';
 import { useToast } from '@/hooks/use-toast';
+import { setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 
 const TiffinDashboard = () => {
   const { user, isUserLoading } = useUser();
@@ -37,6 +37,7 @@ const TiffinDashboard = () => {
     () => (firestore && user ? doc(firestore, 'users', user.uid) : null),
     [firestore, user]
   );
+
   const {
     data: userData,
     isLoading: isUserDocLoading,
@@ -58,59 +59,44 @@ const TiffinDashboard = () => {
   } = useCollection<TiffinOrder>(tiffinOrdersRef);
 
   useEffect(() => {
-    // This effect handles the one-time creation of a user document if it doesn't exist.
-    // It runs only when the necessary dependencies are stable and defined.
-    if (
-      !user ||
-      !userDocRef ||
-      isUserLoading ||
-      isUserDocLoading ||
-      userDocError
-    ) {
-      // Exit early if we don't have a user, the doc ref, or if things are still loading/in error state.
+    // Guard against running this effect until all dependencies are ready.
+    if (isUserLoading || isUserDocLoading || !user || !userDocRef) {
       return;
     }
 
-    // The condition to create a new user doc:
-    // We have a user, the document loading is complete, and the document data is null (doesn't exist).
+    // This effect should only run once the user is loaded and we have checked for the user document.
+    // If userData is null, it means the document doesn't exist, and we should create it.
     if (userData === null) {
-      console.log('Creating new user document for UID:', user.uid);
+      console.log('User document not found. Creating a new one...');
       const newUser: UserData = {
         name: user.displayName || user.email || 'New User',
         email: user.email || '',
         billingStartDate: 1, // Default billing start date
       };
 
-      // Use an async IIFE to handle the setDoc operation.
-      (async () => {
+      // Use a separate async function to handle the creation.
+      const createUserDocument = async () => {
         try {
-          // Use `setDoc` for this one-time creation. `await` ensures it completes.
-          // Using `merge: true` is safer as it won't overwrite a doc if a race condition somehow occurs.
-          await setDoc(userDocRef, newUser, { merge: true });
+          // Use `setDoc` which is appropriate for creating a document with a specific ID.
+          await setDoc(userDocRef, newUser);
           toast({
             title: 'Profile Created',
-            description: 'Your TiffinTrack profile has been set up.',
+            description: 'Your TiffinTrack profile has been set up successfully.',
           });
         } catch (error) {
           console.error('Failed to create user document:', error);
           toast({
             variant: 'destructive',
-            title: 'Error creating profile',
-            description:
-              'Could not save your user profile. Please refresh and try again.',
+            title: 'Error Creating Profile',
+            description: 'Could not save your user profile. Please try again.',
           });
         }
-      })();
+      };
+
+      createUserDocument();
     }
-  }, [
-    user,
-    userDocRef,
-    userData,
-    isUserLoading,
-    isUserDocLoading,
-    userDocError,
-    toast,
-  ]);
+  }, [user, userData, isUserLoading, isUserDocLoading, userDocRef, toast]);
+
 
   const handleDayClick = (date: Date) => {
     setEditorState({ open: true, date: startOfDay(date) });
@@ -152,7 +138,6 @@ const TiffinDashboard = () => {
     }
     try {
       // Use `updateDoc` which is the correct operation for modifying an existing document.
-      // Awaiting this ensures we can provide accurate feedback to the user.
       await updateDoc(userDocRef, { billingStartDate: newDate });
       toast({
         title: 'Success!',
@@ -181,7 +166,7 @@ const TiffinDashboard = () => {
     }, {} as { [date: string]: Partial<TiffinDay> });
   }, [tiffinData]);
 
-  // Combined loading state. We are loading if auth is loading OR if user doc is loading.
+  // Combined loading state.
   const isLoading = isUserLoading || isUserDocLoading;
 
   if (isLoading) {
@@ -242,9 +227,9 @@ const TiffinDashboard = () => {
               onBillingDateChange={handleBillingDateChange}
             />
           ) : (
-            <Card className="flex items-center justify-center p-6 h-64">
-              <p className="text-muted-foreground">Waiting for user data...</p>
-            </Card>
+             <Card className="flex items-center justify-center p-6 h-64">
+                <TiffinLoader text="Setting up your profile..." />
+             </Card>
           )}
         </div>
       </div>
