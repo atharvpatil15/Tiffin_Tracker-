@@ -178,23 +178,27 @@ const BillingSummary: FC<BillingSummaryProps> = ({
     doc.text(`Billed to: ${user.displayName}`, 20, 40);
     doc.text(`Billing Cycle: ${format(billingCycle.start, 'MMM d, yyyy')} - ${format(billingCycle.end, 'MMM d, yyyy')}`, 20, 48);
     
+    const breakfastAmount = (mealCounts.breakfast * MEAL_PRICES.breakfast).toFixed(2);
+    const lunchAmount = (mealCounts.lunch * MEAL_PRICES.lunch).toFixed(2);
+    const dinnerAmount = (mealCounts.dinner * MEAL_PRICES.dinner).toFixed(2);
+
     doc.autoTable({
         startY: 60,
         head: [['Item', 'Quantity', 'Rate', 'Amount']],
         body: [
-            ['Breakfasts', mealCounts.breakfast, `₹${MEAL_PRICES.breakfast.toFixed(2)}`, (mealCounts.breakfast * MEAL_PRICES.breakfast).toFixed(2)],
-            ['Lunches', mealCounts.lunch, `₹${MEAL_PRICES.lunch.toFixed(2)}`, (mealCounts.lunch * MEAL_PRICES.lunch).toFixed(2)],
-            ['Dinners', mealCounts.dinner, `₹${MEAL_PRICES.dinner.toFixed(2)}`, (mealCounts.dinner * MEAL_PRICES.dinner).toFixed(2)],
+            ['Breakfasts', mealCounts.breakfast, `Rs. ${MEAL_PRICES.breakfast.toFixed(2)}`, breakfastAmount],
+            ['Lunches', mealCounts.lunch, `Rs. ${MEAL_PRICES.lunch.toFixed(2)}`, lunchAmount],
+            ['Dinners', mealCounts.dinner, `Rs. ${MEAL_PRICES.dinner.toFixed(2)}`, dinnerAmount],
         ],
-        foot: [['Total', '', '', `₹${totalBill.toFixed(2)}`]],
-        headStyles: { fillColor: [24, 95, 53] },
+        foot: [['Total', '', '', `Rs. ${totalBill.toFixed(2)}`]],
+        headStyles: { fillColor: [24, 95, 53] }, // Hindu Orange for header
         footStyles: { fillColor: [220, 220, 220], textColor: [0, 0, 0], fontStyle: 'bold' },
         theme: 'striped',
         didDrawPage: (data: any) => {
             doc.setFontSize(14);
             doc.setFont('helvetica', 'bold');
             doc.text('TOTAL BILL:', 130, data.cursor.y + 10);
-            doc.text(`₹${totalBill.toFixed(2)}`, 165, data.cursor.y + 10);
+            doc.text(`Rs. ${totalBill.toFixed(2)}`, 165, data.cursor.y + 10);
         }
     });
 
@@ -206,8 +210,8 @@ const BillingSummary: FC<BillingSummaryProps> = ({
         
         doc.autoTable({
             startY: 30,
-            head: [['Date', 'Breakfast', 'Lunch', 'Dinner', 'Day Total (₹)']],
-            body: dailyBreakdown.map(d => [d.date, d.breakfast, d.lunch, d.dinner, d.dayTotal.toFixed(2)]),
+            head: [['Date', 'Breakfast', 'Lunch', 'Dinner', 'Day Total']],
+            body: dailyBreakdown.map(d => [d.date, d.breakfast, d.lunch, d.dinner, `Rs. ${d.dayTotal.toFixed(2)}`]),
             headStyles: { fillColor: [24, 95, 53] },
             theme: 'grid',
             styles: { font: 'helvetica', halign: 'center' },
