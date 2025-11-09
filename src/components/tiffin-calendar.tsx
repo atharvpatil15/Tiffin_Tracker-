@@ -1,7 +1,7 @@
 "use client";
 
 import type { FC } from "react";
-import { DayPicker, type DayProps } from "react-day-picker";
+import { DayPicker, type DayProps, type DayContentProps } from "react-day-picker";
 import { format } from "date-fns";
 import { Sunrise, Sun, Moon } from "lucide-react";
 
@@ -16,38 +16,47 @@ interface TiffinCalendarProps {
   setMonth: (date: Date) => void;
 }
 
+function CustomDayContent(props: DayContentProps) {
+  const dayFormatted = format(props.date, "yyyy-MM-dd");
+  const meals = (props.activeModifiers.tiffinLog as any)?.[dayFormatted];
+
+  return (
+    <div
+      className={cn(
+        "relative flex h-full w-full flex-col items-center justify-center p-2",
+        props.activeModifiers.today && "font-bold"
+      )}
+    >
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
+        {format(props.date, "d")}
+      </div>
+      {meals && (
+        <div className="absolute bottom-1.5 flex justify-center w-full gap-1">
+          {meals.breakfast && <Sunrise className="h-3 w-3 text-accent" />}
+          {meals.lunch && <Sun className="h-3 w-3 text-accent" />}
+          {meals.dinner && <Moon className="h-3 w-3 text-accent" />}
+        </div>
+      )}
+    </div>
+  );
+}
+
+
 const TiffinCalendar: FC<TiffinCalendarProps> = ({
   tiffinLog,
   onDayClick,
   month,
   setMonth,
 }) => {
-
-  function DayContent(props: DayProps) {
-    const dayFormatted = format(props.date, "yyyy-MM-dd");
-    const meals = tiffinLog[dayFormatted];
-    
-    return (
-      <div className="relative flex h-full w-full flex-col items-center justify-center">
-        <span>{format(props.date, "d")}</span>
-        {meals && (
-          <div className="absolute bottom-1 flex gap-1">
-            {meals.breakfast && <Sunrise className="h-3 w-3 text-accent" />}
-            {meals.lunch && <Sun className="h-3 w-3 text-accent" />}
-            {meals.dinner && <Moon className="h-3 w-3 text-accent" />}
-          </div>
-        )}
-      </div>
-    );
-  }
-
   return (
     <DayPicker
       month={month}
       onMonthChange={setMonth}
       onDayClick={(day, modifiers) => !modifiers.disabled && onDayClick(day)}
+      modifiers={{ tiffinLog: tiffinLog as any }}
+      modifiersClassNames={{ tiffinLog: '' }}
       components={{
-        DayContent: DayContent,
+        DayContent: CustomDayContent,
       }}
       className="bg-card rounded-lg shadow-lg p-4"
       classNames={{
@@ -66,14 +75,14 @@ const TiffinCalendar: FC<TiffinCalendarProps> = ({
         head_row: "flex",
         head_cell: "text-muted-foreground rounded-md w-full font-normal text-[0.8rem]",
         row: "flex w-full mt-2",
-        cell: "h-16 w-full text-center text-sm p-0 relative [&:has([aria-selected])]:bg-accent/20 first:[&:has([aria-selected])]:rounded-l-md last:[&:has([aria-selected])]:rounded-r-md focus-within:relative focus-within:z-20",
+        cell: "h-20 w-full text-center text-sm p-0 relative [&:has([aria-selected])]:bg-accent/20 first:[&:has([aria-selected])]:rounded-l-md last:[&:has([aria-selected])]:rounded-r-md focus-within:relative focus-within:z-20",
         day: cn(
           buttonVariants({ variant: "ghost" }),
-          "h-16 w-full p-0 font-normal aria-selected:opacity-100"
+          "h-20 w-full p-0 font-normal aria-selected:opacity-100"
         ),
         day_selected:
           "bg-accent/20 text-accent-foreground focus:bg-accent/20 focus:text-primary",
-        day_today: "bg-primary/20 text-primary-foreground font-bold",
+        day_today: "bg-primary/20 text-primary-foreground",
         day_outside: "text-muted-foreground opacity-50",
         day_disabled: "text-muted-foreground opacity-50",
         day_range_middle:
