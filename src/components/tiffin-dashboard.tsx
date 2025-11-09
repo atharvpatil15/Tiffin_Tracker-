@@ -62,9 +62,11 @@ const TiffinDashboard = () => {
       };
       
       // Use setDoc to create the new user document.
-      // setDoc is non-blocking here as we don't need to wait for it.
+      // A non-blocking call is acceptable here, but it must be correct.
+      // Using { merge: true } is safer as it won't overwrite existing data
+      // if there's a race condition, and it correctly creates the document.
       if (userDocRef) {
-        setDocumentNonBlocking(userDocRef, newUser, {});
+        setDocumentNonBlocking(userDocRef, newUser, { merge: true });
       }
     }
   }, [user, isUserLoading, userData, isUserDocLoading, firestore, userDocRef]);
