@@ -1,7 +1,7 @@
 'use client';
 
 import type { FC } from 'react';
-import { useState, useRef } from 'react';
+import { useState } from 'react';
 import {
   addMonths,
   eachDayOfInterval,
