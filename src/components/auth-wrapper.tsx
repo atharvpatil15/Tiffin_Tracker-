@@ -3,6 +3,7 @@
 import { useUser } from '@/firebase';
 import { useRouter } from 'next/navigation';
 import { useEffect, type ReactNode } from 'react';
+import TiffinLoader from './tiffin-loader';
 
 interface AuthWrapperProps {
   children: ReactNode;
@@ -21,7 +22,7 @@ export default function AuthWrapper({ children }: AuthWrapperProps) {
   if (isUserLoading || !user) {
     return (
       <div className="flex min-h-screen items-center justify-center">
-        <p>Loading...</p>
+        <TiffinLoader />
       </div>
     );
   }

@@ -23,6 +23,7 @@ import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth, useUser } from '@/firebase';
 import { UtensilsCrossed, LogIn } from 'lucide-react';
+import TiffinLoader from '@/components/tiffin-loader';
 
 const formSchema = z.object({
   email: z.string().email({ message: 'Invalid email address.' }),
@@ -87,7 +88,7 @@ export default function LoginPage() {
   if (isUserLoading || user) {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center bg-background">
-        <p>Loading...</p>
+        <TiffinLoader />
       </div>
     );
   }

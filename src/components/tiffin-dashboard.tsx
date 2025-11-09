@@ -17,10 +17,10 @@ import type { UserData, TiffinDay, TiffinOrder } from '@/lib/types';
 import TiffinCalendar from './tiffin-calendar';
 import BillingSummary from './billing-summary';
 import TiffinEditor from './tiffin-editor';
-import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertTriangle } from 'lucide-react';
 import { Card } from '@/components/ui/card';
+import TiffinLoader from './tiffin-loader';
 
 const TiffinDashboard = () => {
   const { user, isUserLoading } = useUser();
@@ -113,11 +113,8 @@ const TiffinDashboard = () => {
 
   if (isLoading) {
     return (
-      <div className="grid h-full grid-cols-1 gap-6 p-4 md:p-6 lg:grid-cols-3">
-        <div className="lg:col-span-2">
-          <Skeleton className="h-[600px] w-full" />
-        </div>
-        <Skeleton className="h-[400px] w-full" />
+      <div className="flex h-full w-full items-center justify-center p-4 md:p-6">
+        <TiffinLoader />
       </div>
     );
   }
@@ -143,7 +140,7 @@ const TiffinDashboard = () => {
     <>
       <div className="grid h-full grid-cols-1 items-start gap-8 p-4 md:p-8 lg:grid-cols-5 xl:grid-cols-3">
         <div className="lg:col-span-3 xl:col-span-2 flex justify-center">
-          <Card className="w-full p-2 sm:p-4">
+          <Card className="w-full max-w-2xl p-2 sm:p-4">
               <TiffinCalendar
                 tiffinLog={tiffinLog}
                 onDayClick={handleDayClick}
