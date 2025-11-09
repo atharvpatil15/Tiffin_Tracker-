@@ -30,17 +30,11 @@ function CustomDayContent(props: DayContentProps) {
     if (colors.length === 0) return {};
     if (colors.length === 1) return { background: colors[0] };
 
-    // Create a smooth gradient
-    const gradientStops = colors.map((color, index) => {
-        const position = (index / (colors.length -1)) * 100;
-        return `${color} ${position}%`;
-    }).join(', ');
-
     return {
-      background: `linear-gradient(45deg, ${gradientStops})`,
+      background: `linear-gradient(45deg, ${colors.join(', ')})`,
     };
   };
-  
+
   const hasMeals = meals && (meals.breakfast || meals.lunch || meals.dinner);
 
   return (
