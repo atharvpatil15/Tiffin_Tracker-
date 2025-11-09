@@ -14,6 +14,7 @@ import {
 } from 'date-fns';
 import { CalendarIcon, Edit, Sunrise, Sun, Moon, Download } from 'lucide-react';
 import jsPDF from 'jspdf';
+import 'jspdf-autotable';
 
 import type { TiffinLog } from '@/lib/types';
 import { MEAL_PRICES } from '@/lib/constants';
@@ -79,6 +80,11 @@ const getBillingCycle = (
     );
   }
 
+  // Ensure cycleEnd is not before cycleStart, which can happen for short months
+  if (isBefore(cycleEnd, cycleStart)) {
+      cycleEnd = endOfMonth(cycleStart);
+  }
+
   return { start: cycleStart, end: cycleEnd };
 };
 
@@ -89,26 +95,49 @@ const calculateBill = (
   const daysInCycle = eachDayOfInterval(billingCycle);
   let totalBill = 0;
   const mealCounts = { breakfast: 0, lunch: 0, dinner: 0 };
+  const dailyBreakdown: {date: string; breakfast: string; lunch: string; dinner: string; dayTotal: number}[] = [];
+
 
   daysInCycle.forEach((day) => {
-    const dayLog = tiffinLog[format(day, 'yyyy-MM-dd')];
-    if (dayLog) {
-      if (dayLog.breakfast) {
-        totalBill += MEAL_PRICES.breakfast;
-        mealCounts.breakfast++;
-      }
-      if (dayLog.lunch) {
-        totalBill += MEAL_PRICES.lunch;
-        mealCounts.lunch++;
-      }
-      if (dayLog.dinner) {
-        totalBill += MEAL_PRICES.dinner;
-        mealCounts.dinner++;
-      }
+    const dayFormatted = format(day, 'yyyy-MM-dd');
+    const dayLog = tiffinLog[dayFormatted];
+    let dayTotal = 0;
+    
+    const breakfastTaken = dayLog?.breakfast;
+    const lunchTaken = dayLog?.lunch;
+    const dinnerTaken = dayLog?.dinner;
+
+    if (breakfastTaken) {
+      const price = MEAL_PRICES.breakfast;
+      totalBill += price;
+      mealCounts.breakfast++;
+      dayTotal += price;
+    }
+    if (lunchTaken) {
+      const price = MEAL_PRICES.lunch;
+      totalBill += price;
+      mealCounts.lunch++;
+      dayTotal += price;
+    }
+    if (dinnerTaken) {
+       const price = MEAL_PRICES.dinner;
+      totalBill += price;
+      mealCounts.dinner++;
+      dayTotal += price;
+    }
+    
+    if (dayTotal > 0) {
+      dailyBreakdown.push({
+        date: format(day, 'MMM d, yyyy'),
+        breakfast: breakfastTaken ? '✔' : '-',
+        lunch: lunchTaken ? '✔' : '-',
+        dinner: dinnerTaken ? '✔' : '-',
+        dayTotal: dayTotal,
+      });
     }
   });
 
-  return { totalBill, mealCounts };
+  return { totalBill, mealCounts, dailyBreakdown };
 };
 
 const BillingSummary: FC<BillingSummaryProps> = ({
@@ -118,7 +147,7 @@ const BillingSummary: FC<BillingSummaryProps> = ({
   const [newBillingDate, setNewBillingDate] = useState(user.billingStartDate);
 
   const billingCycle = getBillingCycle(user.billingStartDate);
-  const { totalBill, mealCounts } = calculateBill(
+  const { totalBill, mealCounts, dailyBreakdown } = calculateBill(
     user.tiffins || {},
     billingCycle
   );
@@ -130,7 +159,7 @@ const BillingSummary: FC<BillingSummaryProps> = ({
   };
 
   const handleDownloadBill = () => {
-    const doc = new jsPDF();
+    const doc = new jsPDF() as any;
     
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(22);
@@ -141,41 +170,43 @@ const BillingSummary: FC<BillingSummaryProps> = ({
     doc.text(`Billed to: ${user.displayName}`, 20, 40);
     doc.text(`Billing Cycle: ${format(billingCycle.start, 'MMM d, yyyy')} - ${format(billingCycle.end, 'MMM d, yyyy')}`, 20, 48);
     
-    doc.line(20, 60, 190, 60); // separator
-
-    doc.setFont('courier', 'bold');
-    doc.text('Item', 20, 70);
-    doc.text('Quantity', 80, 70);
-    doc.text('Rate', 120, 70);
-    doc.text('Amount', 160, 70);
-    doc.line(20, 75, 190, 75);
-
-    let yPos = 85;
-    const items = [
-      { name: 'Breakfasts', count: mealCounts.breakfast, price: MEAL_PRICES.breakfast },
-      { name: 'Lunches', count: mealCounts.lunch, price: MEAL_PRICES.lunch },
-      { name: 'Dinners', count: mealCounts.dinner, price: MEAL_PRICES.dinner },
-    ];
-
-    doc.setFont('courier', 'normal');
-    items.forEach(item => {
-      if (item.count > 0) {
-        const total = (item.count * item.price).toFixed(2);
-        doc.text(item.name, 20, yPos);
-        doc.text(item.count.toString(), 80, yPos);
-        doc.text(`Rs. ${item.price.toFixed(2)}`, 120, yPos);
-        doc.text(`Rs. ${total}`, 160, yPos);
-        yPos += 10;
-      }
+    doc.autoTable({
+        startY: 60,
+        head: [['Item', 'Quantity', 'Rate', 'Amount']],
+        body: [
+            ['Breakfasts', mealCounts.breakfast, `Rs. ${MEAL_PRICES.breakfast.toFixed(2)}`, (mealCounts.breakfast * MEAL_PRICES.breakfast).toFixed(2)],
+            ['Lunches', mealCounts.lunch, `Rs. ${MEAL_PRICES.lunch.toFixed(2)}`, (mealCounts.lunch * MEAL_PRICES.lunch).toFixed(2)],
+            ['Dinners', mealCounts.dinner, `Rs. ${MEAL_PRICES.dinner.toFixed(2)}`, (mealCounts.dinner * MEAL_PRICES.dinner).toFixed(2)],
+        ],
+        foot: [['Total', '', '', `Rs. ${totalBill.toFixed(2)}`]],
+        headStyles: { fillColor: [255, 99, 71] },
+        footStyles: { fillColor: [220, 220, 220], textColor: [0, 0, 0], fontStyle: 'bold' },
+        theme: 'striped',
+        didDrawPage: (data: any) => {
+            doc.setFontSize(14);
+            doc.setFont('helvetica', 'bold');
+            doc.text('TOTAL BILL:', 130, data.cursor.y + 10);
+            doc.text(`Rs. ${totalBill.toFixed(2)}`, 165, data.cursor.y + 10);
+        }
     });
 
-    doc.line(20, yPos, 190, yPos);
-    yPos += 10;
+    let finalY = (doc as any).lastAutoTable.finalY;
 
-    doc.setFont('courier', 'bold');
-    doc.setFontSize(14);
-    doc.text('TOTAL BILL:', 110, yPos);
-    doc.text(`Rs. ${totalBill.toFixed(2)}`, 160, yPos);
+    if (dailyBreakdown.length > 0) {
+        doc.addPage();
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(18);
+        doc.text('Daily Breakdown', 105, 20, { align: 'center' });
+        
+        doc.autoTable({
+            startY: 30,
+            head: [['Date', 'Breakfast', 'Lunch', 'Dinner', 'Day Total (Rs.)']],
+            body: dailyBreakdown.map(d => [d.date, d.breakfast, d.lunch, d.dinner, d.dayTotal.toFixed(2)]),
+            headStyles: { fillColor: [255, 99, 71] },
+            theme: 'grid',
+        });
+    }
+
 
     doc.save(`TiffinBill-${user.displayName}-${format(new Date(), 'yyyy-MM-dd')}.pdf`);
   };
@@ -184,16 +215,15 @@ const BillingSummary: FC<BillingSummaryProps> = ({
   return (
     <Card className="w-full">
       <CardHeader>
-        <CardTitle className="font-headline text-primary flex items-center justify-between">
+        <CardTitle className="font-headline text-primary flex flex-wrap items-center justify-between gap-2">
           <span>Monthly Bill</span>
-          <span className="text-sm font-medium text-muted-foreground">
+          <span className="text-sm font-medium text-muted-foreground whitespace-nowrap">
             {user.displayName}
           </span>
         </CardTitle>
-        <CardDescription className="flex items-center gap-2">
+        <CardDescription className="flex items-center gap-2 pt-1">
           <CalendarIcon className="h-4 w-4" />
-          {format(billingCycle.start, 'MMM d, yyyy')} -{' '}
-          {format(billingCycle.end, 'MMM d, yyyy')}
+          <span>{format(billingCycle.start, 'MMM d')} - {format(billingCycle.end, 'MMM d, yyyy')}</span>
         </CardDescription>
       </CardHeader>
       <CardContent className="grid gap-4">
