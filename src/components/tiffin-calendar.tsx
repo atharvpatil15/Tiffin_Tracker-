@@ -1,7 +1,7 @@
 "use client";
 
 import type { FC } from "react";
-import { DayPicker, type DayProps, type DayContentProps } from "react-day-picker";
+import { DayPicker, type DayContentProps } from "react-day-picker";
 import { format } from "date-fns";
 import { Sunrise, Sun, Moon } from "lucide-react";
 
@@ -75,14 +75,14 @@ const TiffinCalendar: FC<TiffinCalendarProps> = ({
         head_row: "flex",
         head_cell: "text-muted-foreground rounded-md w-full font-normal text-[0.8rem]",
         row: "flex w-full mt-2",
-        cell: "h-20 w-full text-center text-sm p-0 relative [&:has([aria-selected])]:bg-accent/20 first:[&:has([aria-selected])]:rounded-l-md last:[&:has([aria-selected])]:rounded-r-md focus-within:relative focus-within:z-20",
+        cell: "h-20 w-full text-center text-sm p-0 relative focus-within:relative focus-within:z-20",
         day: cn(
           buttonVariants({ variant: "ghost" }),
           "h-20 w-full p-0 font-normal aria-selected:opacity-100"
         ),
         day_selected:
-          "bg-accent/20 text-accent-foreground focus:bg-accent/20 focus:text-primary",
-        day_today: "bg-primary/20 text-primary-foreground",
+          "bg-accent/20 text-accent-foreground rounded-md focus:bg-accent/20 focus:text-primary",
+        day_today: "bg-primary/20 text-primary-foreground rounded-md",
         day_outside: "text-muted-foreground opacity-50",
         day_disabled: "text-muted-foreground opacity-50",
         day_range_middle:
