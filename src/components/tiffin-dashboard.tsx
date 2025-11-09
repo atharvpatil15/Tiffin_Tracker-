@@ -140,8 +140,8 @@ const TiffinDashboard = () => {
   return (
     <>
       <div className="grid h-full grid-cols-1 items-start gap-8 p-4 md:p-8 lg:grid-cols-3">
-        <div className="lg:col-span-2">
-          <Card className="w-full p-2 sm:p-4">
+        <div className="lg:col-span-2 flex justify-center">
+          <Card className="w-auto p-2 sm:p-4">
               <TiffinCalendar
                 tiffinLog={tiffinLog}
                 onDayClick={handleDayClick}

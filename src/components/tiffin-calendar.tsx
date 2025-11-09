@@ -29,7 +29,7 @@ function CustomDayContent(props: DayContentProps) {
     >
       <div className="z-10">{format(props.date, "d")}</div>
       {meals && (
-        <div className="absolute bottom-1.5 z-10 flex w-full justify-center gap-1.5">
+        <div className="absolute bottom-1 z-10 flex w-full justify-center gap-1">
           {meals.breakfast && <div className="h-1.5 w-1.5 rounded-full bg-[hsl(var(--indicator-breakfast))]" />}
           {meals.lunch && <div className="h-1.5 w-1.5 rounded-full bg-[hsl(var(--indicator-lunch))]" />}
           {meals.dinner && <div className="h-1.5 w-1.5 rounded-full bg-[hsl(var(--indicator-dinner))]" />}
@@ -47,45 +47,46 @@ const TiffinCalendar: FC<TiffinCalendarProps> = ({
   setMonth,
 }) => {
   return (
-    <DayPicker
-      month={month}
-      onMonthChange={setMonth}
-      onDayClick={(day, modifiers) => !modifiers.disabled && onDayClick(day)}
-      modifiers={{ tiffinLog: tiffinLog as any }}
-      modifiersClassNames={{ tiffinLog: "" }}
-      components={{
-        DayContent: CustomDayContent,
-      }}
-      className="w-full"
-      classNames={{
-        months: "flex flex-col",
-        month: "flex flex-col",
-        table: "w-full border-collapse",
-        head_row: "grid grid-cols-7",
-        head_cell: "text-muted-foreground font-normal text-sm",
-        row: "grid grid-cols-7 w-full mt-2",
-        cell: "flex-1 p-0 text-center text-sm relative focus-within:relative focus-within:z-20 aspect-square",
-        day: cn(
-          buttonVariants({ variant: "ghost" }),
-          "h-full w-full p-0 font-normal aria-selected:opacity-100 rounded-lg flex-1 hover:bg-white/10"
-        ),
-        day_selected:
-          "bg-accent/20 text-accent-foreground rounded-lg focus:bg-accent/30 focus:text-primary",
-        day_today: "bg-primary text-primary-foreground rounded-lg",
-        day_outside: "text-muted-foreground opacity-50",
-        day_disabled: "text-muted-foreground opacity-50",
-        caption: "flex justify-center pt-1 relative items-center",
-        caption_label: "text-xl font-medium font-headline",
-        nav: "space-x-1 flex items-center",
-        nav_button: cn(
-          buttonVariants({ variant: "outline" }),
-          "h-7 w-7 bg-transparent p-0 opacity-50 hover:opacity-100"
-        ),
-        nav_button_previous: "absolute left-1",
-        nav_button_next: "absolute right-1",
-      }}
-      showOutsideDays
-    />
+      <DayPicker
+        month={month}
+        onMonthChange={setMonth}
+        onDayClick={(day, modifiers) => !modifiers.disabled && onDayClick(day)}
+        modifiers={{ tiffinLog: tiffinLog as any }}
+        modifiersClassNames={{ tiffinLog: "" }}
+        components={{
+          DayContent: CustomDayContent,
+        }}
+        className="w-full"
+        classNames={{
+          months: "flex flex-col sm:flex-row",
+          month: "space-y-4",
+          table: "w-full border-collapse space-y-1",
+          head_row: "flex",
+          head_cell:
+            "text-muted-foreground rounded-md w-9 font-normal text-[0.8rem]",
+          row: "flex w-full mt-2",
+          cell: "h-9 w-9 text-center text-sm p-0 relative [&:has([aria-selected])]:bg-accent first:[&:has([aria-selected])]:rounded-l-md last:[&:has([aria-selected])]:rounded-r-md focus-within:relative focus-within:z-20",
+          day: cn(
+            buttonVariants({ variant: "ghost" }),
+            "h-9 w-9 p-0 font-normal aria-selected:opacity-100"
+          ),
+          day_selected:
+            "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground",
+          day_today: "bg-accent text-accent-foreground",
+          day_outside: "text-muted-foreground opacity-50",
+          day_disabled: "text-muted-foreground opacity-50",
+          caption: "flex justify-center pt-1 relative items-center",
+          caption_label: "text-sm font-medium",
+          nav: "space-x-1 flex items-center",
+          nav_button: cn(
+            buttonVariants({ variant: "outline" }),
+            "h-7 w-7 bg-transparent p-0 opacity-50 hover:opacity-100"
+          ),
+          nav_button_previous: "absolute left-1",
+          nav_button_next: "absolute right-1",
+        }}
+        showOutsideDays
+      />
   );
 };
 
