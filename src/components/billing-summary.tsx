@@ -261,30 +261,23 @@ const BillingSummary: FC<BillingSummaryProps> = ({
             {user.displayName}
           </span>
         </CardTitle>
-        <CardDescription className="flex items-center gap-2 pt-1">
+        <CardDescription className="flex items-center gap-2 pt-1 flex-wrap">
+          <span className="text-sm text-muted-foreground">
+            {format(billingCycle.start, 'MMM dd, yyyy')} - {format(billingCycle.end, 'MMM dd, yyyy')}
+          </span>
            <Popover>
             <PopoverTrigger asChild>
               <Button
                 id="date"
                 variant={'outline'}
+                size="sm"
                 className={cn(
-                  'w-full justify-start text-left font-normal',
+                  'w-full sm:w-auto justify-start text-left font-normal',
                   !dateRange && 'text-muted-foreground'
                 )}
               >
                 <CalendarIcon className="mr-2 h-4 w-4" />
-                {dateRange?.from ? (
-                  dateRange.to ? (
-                    <>
-                      {format(dateRange.from, 'LLL dd, y')} -{' '}
-                      {format(dateRange.to, 'LLL dd, y')}
-                    </>
-                  ) : (
-                    format(dateRange.from, 'LLL dd, y')
-                  )
-                ) : (
-                  <span>Pick a date</span>
-                )}
+                <span>Change Dates</span>
               </Button>
             </PopoverTrigger>
             <PopoverContent className="w-auto p-0" align="start">
@@ -294,7 +287,7 @@ const BillingSummary: FC<BillingSummaryProps> = ({
                 defaultMonth={dateRange?.from}
                 selected={dateRange}
                 onSelect={setDateRange}
-                numberOfMonths={2}
+                numberOfMonths={1}
               />
               <div className="p-2 border-t">
                 <Button onClick={resetDateRange} variant="ghost" size="sm" className="w-full">
