@@ -59,27 +59,22 @@ const TiffinDashboard = () => {
   } = useCollection<TiffinOrder>(tiffinOrdersRef);
 
   useEffect(() => {
-    // This effect handles creating a user document if it doesn't exist.
-    // It will only run when the necessary dependencies are available and stable.
-    if (isUserLoading || isUserDocLoading || !user || !userDocRef) {
+    if (isUserLoading || !user || !userDocRef) {
       return;
     }
-  
-    // The critical condition: Only proceed if loading is finished AND the document is confirmed to not exist.
+
     if (!isUserDocLoading && userData === null) {
-      console.log('User document not found. Creating a new one...');
       const newUser: UserData = {
         name: user.displayName || user.email || 'New User',
         email: user.email || '',
         billingStartDate: 1, // Default value for new users
       };
-  
-      // Use a standard `setDoc` which we can await to ensure it completes.
+
       setDoc(userDocRef, newUser)
         .then(() => {
           toast({
             title: 'Profile Created',
-            description: 'Your TiffinTrack profile has been set up successfully.',
+            description: 'Your TiffinTrack profile has been set up.',
           });
         })
         .catch((error) => {

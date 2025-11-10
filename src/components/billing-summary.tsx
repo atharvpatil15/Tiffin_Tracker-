@@ -2,6 +2,7 @@
 
 import type { FC } from 'react';
 import { useState } from 'react';
+import type { DateRange } from 'react-day-picker';
 import {
   addMonths,
   eachDayOfInterval,
@@ -34,6 +35,8 @@ import {
 } from '@/components/ui/popover';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
+import { Calendar } from '@/components/ui/calendar';
+import { cn } from '@/lib/utils';
 
 interface BillingSummaryProps {
   user: {
@@ -146,9 +149,18 @@ const BillingSummary: FC<BillingSummaryProps> = ({
 }) => {
   const [newBillingDate, setNewBillingDate] = useState(user.billingStartDate);
   const [isPopoverOpen, setIsPopoverOpen] = useState(false);
+  
+  const autoBillingCycle = getBillingCycle(user.billingStartDate);
+  const [dateRange, setDateRange] = useState<DateRange | undefined>({
+    from: autoBillingCycle.start,
+    to: autoBillingCycle.end,
+  });
 
-
-  const billingCycle = getBillingCycle(user.billingStartDate);
+  const billingCycle = {
+    start: dateRange?.from || autoBillingCycle.start,
+    end: dateRange?.to || autoBillingCycle.end,
+  };
+  
   const { totalBill, mealCounts, dailyBreakdown } = calculateBill(
     user.tiffins || {},
     billingCycle
@@ -233,6 +245,12 @@ const BillingSummary: FC<BillingSummaryProps> = ({
     doc.save(`TiffinBill-${user.displayName}-${format(new Date(), 'yyyy-MM-dd')}.pdf`);
   };
 
+  const resetDateRange = () => {
+    setDateRange({
+      from: autoBillingCycle.start,
+      to: autoBillingCycle.end,
+    });
+  };
 
   return (
     <Card className="w-full">
@@ -244,8 +262,47 @@ const BillingSummary: FC<BillingSummaryProps> = ({
           </span>
         </CardTitle>
         <CardDescription className="flex items-center gap-2 pt-1">
-          <CalendarIcon className="h-4 w-4" />
-          <span>{format(billingCycle.start, 'MMM d')} - {format(billingCycle.end, 'MMM d, yyyy')}</span>
+           <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                id="date"
+                variant={'outline'}
+                className={cn(
+                  'w-full justify-start text-left font-normal',
+                  !dateRange && 'text-muted-foreground'
+                )}
+              >
+                <CalendarIcon className="mr-2 h-4 w-4" />
+                {dateRange?.from ? (
+                  dateRange.to ? (
+                    <>
+                      {format(dateRange.from, 'LLL dd, y')} -{' '}
+                      {format(dateRange.to, 'LLL dd, y')}
+                    </>
+                  ) : (
+                    format(dateRange.from, 'LLL dd, y')
+                  )
+                ) : (
+                  <span>Pick a date</span>
+                )}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+              <Calendar
+                initialFocus
+                mode="range"
+                defaultMonth={dateRange?.from}
+                selected={dateRange}
+                onSelect={setDateRange}
+                numberOfMonths={2}
+              />
+              <div className="p-2 border-t">
+                <Button onClick={resetDateRange} variant="ghost" size="sm" className="w-full">
+                  Reset to Current Cycle
+                </Button>
+              </div>
+            </PopoverContent>
+          </Popover>
         </CardDescription>
       </CardHeader>
       <CardContent className="grid gap-4">
@@ -328,5 +385,3 @@ const BillingSummary: FC<BillingSummaryProps> = ({
 };
 
 export default BillingSummary;
-
-    

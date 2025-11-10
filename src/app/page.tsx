@@ -5,6 +5,7 @@ import { UtensilsCrossed, LogOut } from 'lucide-react';
 import AuthWrapper from '@/components/auth-wrapper';
 import { useAuth, useUser } from '@/firebase';
 import { Button } from '@/components/ui/button';
+import { ThemeToggle } from '@/components/theme-toggle';
 
 export default function Home() {
   const auth = useAuth();
@@ -26,17 +27,20 @@ export default function Home() {
               TiffinTrack
             </h1>
           </div>
-          {user && (
-            <div className="flex items-center gap-4">
-              <span className="hidden text-sm text-muted-foreground sm:inline">
-                {user.displayName || user.email}
-              </span>
-              <Button variant="ghost" size="sm" onClick={handleSignOut}>
-                 <LogOut className="mr-2 h-4 w-4" />
-                Sign Out
-              </Button>
-            </div>
-          )}
+          <div className="flex items-center gap-2">
+            <ThemeToggle />
+            {user && (
+              <div className="flex items-center gap-4">
+                <span className="hidden text-sm text-muted-foreground sm:inline">
+                  {user.displayName || user.email}
+                </span>
+                <Button variant="ghost" size="sm" onClick={handleSignOut}>
+                  <LogOut className="mr-2 h-4 w-4" />
+                  Sign Out
+                </Button>
+              </div>
+            )}
+          </div>
         </header>
         <main className="flex-1 overflow-auto">
           <TiffinDashboard />
