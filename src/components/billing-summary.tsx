@@ -1,7 +1,7 @@
 'use client';
 
 import type { FC } from 'react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import type { DateRange } from 'react-day-picker';
 import {
   addMonths,
@@ -83,7 +83,6 @@ const getBillingCycle = (
     );
   }
 
-  // Ensure cycleEnd is not before cycleStart, which can happen for short months
   if (isBefore(cycleEnd, cycleStart)) {
       cycleEnd = endOfMonth(cycleStart);
   }
@@ -150,11 +149,22 @@ const BillingSummary: FC<BillingSummaryProps> = ({
   const [newBillingDate, setNewBillingDate] = useState(user.billingStartDate);
   const [isPopoverOpen, setIsPopoverOpen] = useState(false);
   
-  const autoBillingCycle = getBillingCycle(user.billingStartDate);
+  const [autoBillingCycle, setAutoBillingCycle] = useState(() => getBillingCycle(user.billingStartDate));
   const [dateRange, setDateRange] = useState<DateRange | undefined>({
     from: autoBillingCycle.start,
     to: autoBillingCycle.end,
   });
+
+  useEffect(() => {
+    const newCycle = getBillingCycle(user.billingStartDate);
+    setAutoBillingCycle(newCycle);
+    setDateRange({
+      from: newCycle.start,
+      to: newCycle.end,
+    });
+    setNewBillingDate(user.billingStartDate);
+  }, [user.billingStartDate]);
+
 
   const billingCycle = {
     start: dateRange?.from || autoBillingCycle.start,
@@ -246,9 +256,10 @@ const BillingSummary: FC<BillingSummaryProps> = ({
   };
 
   const resetDateRange = () => {
+    const newCycle = getBillingCycle(user.billingStartDate);
     setDateRange({
-      from: autoBillingCycle.start,
-      to: autoBillingCycle.end,
+      from: newCycle.start,
+      to: newCycle.end,
     });
   };
 
@@ -378,3 +389,5 @@ const BillingSummary: FC<BillingSummaryProps> = ({
 };
 
 export default BillingSummary;
+
+    
