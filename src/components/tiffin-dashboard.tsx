@@ -64,27 +64,27 @@ const TiffinDashboard = () => {
     }
 
     if (!isUserDocLoading && userData === null) {
-      const newUser: UserData = {
-        name: user.displayName || user.email || 'New User',
-        email: user.email || '',
-        billingStartDate: 1, // Default value for new users
-      };
+      // const newUser: UserData = {
+      //   name: user.displayName || user.email || 'New User',
+      //   email: user.email || '',
+      //   billingStartDate: 1, // Default value for new users
+      // };
 
-      setDoc(userDocRef, newUser)
-        .then(() => {
-          toast({
-            title: 'Profile Created',
-            description: 'Your TiffinTrack profile has been set up.',
-          });
-        })
-        .catch((error) => {
-          console.error('Failed to create user document:', error);
-          toast({
-            variant: 'destructive',
-            title: 'Error Creating Profile',
-            description: 'Could not save your user profile. Please try again.',
-          });
-        });
+      // setDoc(userDocRef, newUser)
+      //   .then(() => {
+      //     toast({
+      //       title: 'Profile Created',
+      //       description: 'Your TiffinTrack profile has been set up.',
+      //     });
+      //   })
+      //   .catch((error) => {
+      //     console.error('Failed to create user document:', error);
+      //     toast({
+      //       variant: 'destructive',
+      //       title: 'Error Creating Profile',
+      //       description: 'Could not save your user profile. Please try again.',
+      //     });
+      //   });
     }
   }, [user, userData, isUserLoading, isUserDocLoading, userDocRef, toast]);
   
