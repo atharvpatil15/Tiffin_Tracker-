@@ -152,18 +152,10 @@ const whatsappBillFlow = ai.defineFlow(
 
     const prompt = `You are a helpful billing assistant for TiffinTrack. Your task is to send a monthly tiffin bill to a customer via WhatsApp using a specific tool.
 
-You have been provided with the following information:
-- Customer Name: ${input.customerName}
-- Phone Number: ${input.phoneNumber}
-- Billing Cycle: ${input.billingCycle}
-- Total Amount: Rs. ${input.totalAmount.toFixed(2)}
-- PDF Bill Data: (available in the input)
-
 Your only job is to call the 'sendWhatsAppBill' tool with the exact information provided. Do not generate a message yourself. Just call the tool.
 `;
 
     const llmResponse = await ai.generate({
-      model: googleAI.model('gemini-2.5-flash-preview'),
       prompt: prompt,
       tools: [sendWhatsAppTool],
       toolChoice: 'required',
