@@ -23,40 +23,37 @@ export default function AuthWrapper({ children }: AuthWrapperProps) {
   const { data: userData, isLoading: isUserDocLoading } =
     useDoc<UserData>(userDocRef);
 
+  const shouldRedirect =
+    !isUserLoading &&
+    user &&
+    !isUserDocLoading &&
+    (!userData || !userData.phoneNumber) &&
+    !window.location.pathname.includes('/phone-verification');
+
   useEffect(() => {
-    // Wait until user loading is complete
+    // Wait until authentication is resolved
     if (isUserLoading) {
       return;
     }
 
-    // If no user, redirect to login
+    // If no user is logged in, redirect to the login page
     if (!user) {
       router.push('/login');
       return;
     }
 
-    // Once user is loaded, wait for user doc loading to complete
+    // Once auth is resolved, wait for the user's document to be loaded or confirmed non-existent
     if (isUserDocLoading) {
       return;
     }
-
-    // After user doc has been checked
-    if (userData === null) {
-      // User is authenticated but has no profile document.
-      // This is the state where we should redirect to create a profile,
-      // which includes the phone number.
-      // The creation logic itself is in tiffin-dashboard.tsx.
-      // However, if the phone number is a mandatory step, this is the place to redirect.
-      if (!window.location.pathname.includes('/phone-verification')) {
+    
+    // Now we know for sure whether the user doc exists and if it has a phone number.
+    // If the document or phone number is missing, and we're not already on the verification page, redirect.
+    if ((!userData || !userData.phoneNumber) && !window.location.pathname.includes('/phone-verification')) {
         router.push('/phone-verification');
-      }
-    } else if (!userData.phoneNumber) {
-      // User has a profile but is missing a phone number.
-      if (!window.location.pathname.includes('/phone-verification')) {
-        router.push('/phone-verification');
-      }
     }
-  }, [user, isUserLoading, router, userData, isUserDocLoading]);
+
+  }, [user, isUserLoading, userData, isUserDocLoading, router]);
 
   const isLoading = isUserLoading || isUserDocLoading;
 
@@ -68,10 +65,10 @@ export default function AuthWrapper({ children }: AuthWrapperProps) {
     );
   }
   
-  if (!userData?.phoneNumber && !window.location.pathname.includes('/phone-verification')) {
+  if (shouldRedirect) {
      return (
       <div className="flex min-h-screen items-center justify-center">
-        <TiffinLoader text="Redirecting to add phone number..." />
+        <TiffinLoader text="Redirecting..." />
       </div>
     );
   }
