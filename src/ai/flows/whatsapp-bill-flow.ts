@@ -51,6 +51,7 @@ const sendWhatsAppTool = ai.defineTool(
     outputSchema: z.object({
       success: z.boolean(),
       messageId: z.string().optional(),
+      error: z.string().optional(),
     }),
   },
   async (input) => {
@@ -59,8 +60,9 @@ const sendWhatsAppTool = ai.defineTool(
     const fromPhoneNumberId = process.env.WHATSAPP_PHONE_NUMBER_ID;
 
     if (!accessToken || !fromPhoneNumberId) {
-      console.error('WhatsApp environment variables not set.');
-      return { success: false };
+      const errorMsg = 'WhatsApp environment variables (WHATSAPP_ACCESS_TOKEN, WHATSAPP_PHONE_NUMBER_ID) not set.';
+      console.error(errorMsg);
+      return { success: false, error: errorMsg };
     }
 
     try {
@@ -132,11 +134,15 @@ const sendWhatsAppTool = ai.defineTool(
       );
       
       const messageId = messageResponse.data?.messages?.[0]?.id;
+      if (!messageId) {
+        throw new Error('Message sending did not return a message ID.');
+      }
       return { success: true, messageId: messageId };
 
     } catch (error: any) {
-      console.error('Error sending WhatsApp message:', error.response?.data || error.message);
-      return { success: false };
+      const errorDetails = error.response?.data ? JSON.stringify(error.response.data) : error.message;
+      console.error('Error sending WhatsApp message:', errorDetails);
+      return { success: false, error: errorDetails };
     }
   }
 );
@@ -149,44 +155,22 @@ const whatsappBillFlow = ai.defineFlow(
     outputSchema: WhatsappBillOutputSchema,
   },
   async (input) => {
-
-    const prompt = `You are a helpful billing assistant for TiffinTrack. Your task is to send a monthly tiffin bill to a customer via WhatsApp using a specific tool.
-
-Your only job is to call the 'sendWhatsAppBill' tool with the exact information provided. Do not generate a message yourself. Just call the tool.
-`;
-
-    const llmResponse = await ai.generate({
-      prompt: prompt,
-      tools: [sendWhatsAppTool],
-      toolChoice: 'required',
+    // Directly call the tool without the AI wrapper.
+    const toolResponse = await sendWhatsAppTool({
+      to: input.phoneNumber,
+      customerName: input.customerName,
+      billingCycle: input.billingCycle,
+      totalAmount: `Rs. ${input.totalAmount.toFixed(2)}`,
+      pdfDataUri: input.pdfDataUri,
     });
     
-    const toolRequest = llmResponse.toolRequest();
-    if (!toolRequest) {
-      return {
-        success: false,
-        message: 'Failed to generate tool request to send WhatsApp message.',
-      };
-    }
-    
-    // The tool call will contain all the necessary data.
-    const toolResponse = await toolRequest.run({
-        context: {
-          to: input.phoneNumber,
-          customerName: input.customerName,
-          billingCycle: input.billingCycle,
-          totalAmount: `Rs. ${input.totalAmount.toFixed(2)}`,
-          pdfDataUri: input.pdfDataUri,
-        },
-      });
-
-    const wasSuccessful = toolResponse.output?.success ?? false;
+    const wasSuccessful = toolResponse.success;
 
     return {
       success: wasSuccessful,
       message: wasSuccessful
-        ? 'WhatsApp message sent successfully.'
-        : 'Failed to send WhatsApp message. Check server logs for details.',
+        ? `WhatsApp message sent successfully. Message ID: ${toolResponse.messageId}`
+        : `Failed to send WhatsApp message. Details: ${toolResponse.error}`,
     };
   }
 );
