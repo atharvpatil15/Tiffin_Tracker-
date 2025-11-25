@@ -135,7 +135,10 @@ const sendWhatsAppTool = ai.defineTool(
       
       const messageId = messageResponse.data?.messages?.[0]?.id;
       if (!messageId) {
-        throw new Error('Message sending did not return a message ID.');
+        // If there's no messageId, something went wrong, but it might not be a thrown error
+        // The API might return an error object in the data payload.
+        const errorDetails = messageResponse.data.error ? JSON.stringify(messageResponse.data.error) : 'Message sending did not return a message ID.';
+        throw new Error(errorDetails);
       }
       return { success: true, messageId: messageId };
 
