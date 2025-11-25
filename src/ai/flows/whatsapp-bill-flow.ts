@@ -10,6 +10,8 @@
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
 import { googleAI } from '@genkit-ai/google-genai';
+import axios from 'axios';
+import FormData from 'form-data';
 
 const WhatsappBillInputSchema = z.object({
   customerName: z.string().describe('The name of the customer.'),
@@ -63,41 +65,29 @@ const sendWhatsAppTool = ai.defineTool(
       return { success: false, error: errorMsg };
     }
     
-    // Use node-fetch for server-side fetch
-    const fetch = (await import('node-fetch')).default;
-    const FormData = (await import('form-data')).default;
-
     try {
       // 1. Upload the PDF media to WhatsApp
       const pdfBuffer = Buffer.from(pdfDataUri.split('base64,')[1], 'base64');
       const formData = new FormData();
       formData.append('messaging_product', 'whatsapp');
-      formData.append('file', pdfBuffer, {
-        filename: 'bill.pdf',
-        contentType: 'application/pdf',
-      });
+      formData.append('file', pdfBuffer, 'bill.pdf');
       
-      const uploadUrl = `https://graph.facebook.com/v20.0/${fromPhoneNumberId}/media`;
+      const uploadUrl = `https://graph.facebook.com/v21.0/${fromPhoneNumberId}/media`;
 
-      const uploadResponse = await fetch(uploadUrl, {
-          method: 'POST',
-          body: formData,
-          headers: {
-              ...formData.getHeaders(),
-              'Authorization': `Bearer ${accessToken}`,
-          },
+      const uploadResponse = await axios.post(uploadUrl, formData, {
+        headers: {
+          ...formData.getHeaders(),
+          Authorization: `Bearer ${accessToken}`,
+        },
       });
 
-      const uploadResult = await uploadResponse.json() as any;
-
-      if (!uploadResponse.ok || !uploadResult.id) {
-          throw new Error(`Failed to upload media to WhatsApp. Status: ${uploadResponse.status} - ${JSON.stringify(uploadResult)}`);
+      const mediaId = uploadResponse.data.id;
+      if (!mediaId) {
+          throw new Error(`Failed to upload media to WhatsApp. Response: ${JSON.stringify(uploadResponse.data)}`);
       }
 
-      const mediaId = uploadResult.id;
-
       // 2. Send the message template with the uploaded media
-      const messageUrl = `https://graph.facebook.com/v20.0/${fromPhoneNumberId}/messages`;
+      const messageUrl = `https://graph.facebook.com/v21.0/${fromPhoneNumberId}/messages`;
       const messagePayload = {
         messaging_product: 'whatsapp',
         to: to,
@@ -130,31 +120,34 @@ const sendWhatsAppTool = ai.defineTool(
         },
       };
 
-      const messageResponse = await fetch(messageUrl, {
-        method: 'POST',
+      const messageResponse = await axios.post(messageUrl, messagePayload, {
         headers: {
             'Authorization': `Bearer ${accessToken}`,
             'Content-Type': 'application/json',
         },
-        body: JSON.stringify(messagePayload),
       });
       
-      const messageResult = await messageResponse.json() as any;
-
-      if (!messageResponse.ok) {
-        throw new Error(`WhatsApp message API returned an error. Status: ${messageResponse.status} - ${JSON.stringify(messageResult)}`);
-      }
-
-      const messageId = messageResult?.messages?.[0]?.id;
+      const messageId = messageResponse.data?.messages?.[0]?.id;
       
       if (!messageId) {
-        const errorDetails = messageResult.error ? JSON.stringify(messageResult.error) : 'Message sending did not return a message ID.';
+        const errorDetails = messageResponse.data.error ? JSON.stringify(messageResponse.data.error) : 'Message sending did not return a message ID.';
         throw new Error(errorDetails);
       }
       return { success: true, messageId: messageId };
 
     } catch (error: any) {
-      const errorDetails = error.message || 'An unknown error occurred';
+      let errorDetails = 'An unknown error occurred';
+      if (error.response) {
+        // The request was made and the server responded with a status code
+        // that falls out of the range of 2xx
+        errorDetails = JSON.stringify(error.response.data);
+      } else if (error.request) {
+        // The request was made but no response was received
+        errorDetails = 'No response received from WhatsApp server.';
+      } else {
+        // Something happened in setting up the request that triggered an Error
+        errorDetails = error.message;
+      }
       console.error('Error sending WhatsApp message:', errorDetails);
       return { success: false, error: errorDetails };
     }
