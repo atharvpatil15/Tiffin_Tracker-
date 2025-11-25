@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -21,17 +21,28 @@ import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { Phone } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import type { UserData } from '@/lib/types';
 
 interface PhoneVerificationFormProps {
   user: User;
   userDocRef: DocumentReference | null;
+  userData: UserData | null;
 }
 
 const phoneFormSchema = z.object({
-  phoneNumber: z.string().min(10, { message: 'Enter a valid phone number with country code (e.g., +919876543210).' }),
+  phoneNumber: z
+    .string()
+    .min(10, {
+      message:
+        'Enter a valid phone number with country code (e.g., +919876543210).',
+    }),
 });
 
-export default function PhoneVerificationForm({ user, userDocRef }: PhoneVerificationFormProps) {
+export default function PhoneVerificationForm({
+  user,
+  userDocRef,
+  userData,
+}: PhoneVerificationFormProps) {
   const { toast } = useToast();
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -41,7 +52,15 @@ export default function PhoneVerificationForm({ user, userDocRef }: PhoneVerific
     defaultValues: { phoneNumber: '' },
   });
 
-  const onSavePhoneNumber = async (values: z.infer<typeof phoneFormSchema>) => {
+  useEffect(() => {
+    if (userData?.phoneNumber) {
+      form.reset({ phoneNumber: userData.phoneNumber });
+    }
+  }, [userData, form]);
+
+  const onSavePhoneNumber = async (
+    values: z.infer<typeof phoneFormSchema>
+  ) => {
     if (!userDocRef) return;
     setIsSubmitting(true);
     try {
@@ -49,7 +68,11 @@ export default function PhoneVerificationForm({ user, userDocRef }: PhoneVerific
         phoneNumber: values.phoneNumber,
         phoneVerified: false, // Explicitly set to false as we are skipping OTP
       });
-      toast({ title: 'Phone Number Saved!', description: 'You will be redirected shortly.' });
+      toast({
+        title: 'Phone Number Saved!',
+        description: 'You will be redirected shortly.',
+        duration: 1000,
+      });
       router.push('/');
     } catch (error: any) {
       console.error(error);
@@ -65,7 +88,10 @@ export default function PhoneVerificationForm({ user, userDocRef }: PhoneVerific
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSavePhoneNumber)} className="mt-8 space-y-4">
+      <form
+        onSubmit={form.handleSubmit(onSavePhoneNumber)}
+        className="mt-8 space-y-4"
+      >
         <FormField
           control={form.control}
           name="phoneNumber"

@@ -133,5 +133,3 @@ const TiffinEditor: FC<TiffinEditorProps> = ({
 };
 
 export default TiffinEditor;
-
-    
