@@ -9,7 +9,6 @@
 
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
-import { googleAI } from '@genkit-ai/google-genai';
 import axios from 'axios';
 import FormData from 'form-data';
 
@@ -134,21 +133,17 @@ const sendWhatsAppTool = ai.defineTool(
       
       if (!messageId) {
         const errorDetails = messageResponse.data.error ? JSON.stringify(messageResponse.data.error) : 'Message sending did not return a message ID.';
-        throw new Error(errorDetails);
+        throw new Error(`Failed to send message after media upload. Details: ${errorDetails}`);
       }
       return { success: true, messageId: messageId };
 
     } catch (error: any) {
       let errorDetails = 'An unknown error occurred';
       if (error.response) {
-        // The request was made and the server responded with a status code
-        // that falls out of the range of 2xx
         errorDetails = `Status: ${error.response.status} - ${JSON.stringify(error.response.data)}`;
       } else if (error.request) {
-        // The request was made but no response was received
         errorDetails = 'No response received from WhatsApp server.';
       } else {
-        // Something happened in setting up the request that triggered an Error
         errorDetails = error.message;
       }
       console.error('Error sending WhatsApp message:', errorDetails);
