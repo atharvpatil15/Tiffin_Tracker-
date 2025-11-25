@@ -43,6 +43,7 @@ export default function RootLayout({
             {children}
             <Toaster />
           </FirebaseClientProvider>
+          <div id="recaptcha-container"></div>
         </ThemeProvider>
       </body>
     </html>

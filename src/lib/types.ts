@@ -12,6 +12,8 @@ export interface UserData {
   name: string;
   email: string;
   billingStartDate: number;
+  phoneNumber?: string;
+  phoneVerified?: boolean;
 }
 
 export interface TiffinOrder {
