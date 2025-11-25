@@ -4,14 +4,12 @@
  *
  * - sendWhatsappBill: A function that generates a WhatsApp message with a bill summary and a PDF attachment.
  * - WhatsappBillInput: The input type for the sendWhatsappBill function.
- * - WhatsappBillOutput: The return type for the sendWhatsappBill function.
+ * - WhatsappBillOutput: The return type for the sendWhatsappbill function.
  */
 
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
 import { googleAI } from '@genkit-ai/google-genai';
-import axios from 'axios';
-import FormData from 'form-data';
 
 const WhatsappBillInputSchema = z.object({
   customerName: z.string().describe('The name of the customer.'),
@@ -64,6 +62,10 @@ const sendWhatsAppTool = ai.defineTool(
       console.error(errorMsg);
       return { success: false, error: errorMsg };
     }
+    
+    // Use node-fetch for server-side fetch
+    const fetch = (await import('node-fetch')).default;
+    const FormData = (await import('form-data')).default;
 
     try {
       // 1. Upload the PDF media to WhatsApp
@@ -74,76 +76,85 @@ const sendWhatsAppTool = ai.defineTool(
         filename: 'bill.pdf',
         contentType: 'application/pdf',
       });
+      
+      const uploadUrl = `https://graph.facebook.com/v20.0/${fromPhoneNumberId}/media`;
 
-      const uploadResponse = await axios.post(
-        `https://graph.facebook.com/v20.0/${fromPhoneNumberId}/media`,
-        formData,
-        {
+      const uploadResponse = await fetch(uploadUrl, {
+          method: 'POST',
+          body: formData,
           headers: {
-            ...formData.getHeaders(),
-            Authorization: `Bearer ${accessToken}`,
+              ...formData.getHeaders(),
+              'Authorization': `Bearer ${accessToken}`,
           },
-        }
-      );
+      });
 
-      const mediaId = uploadResponse.data.id;
-      if (!mediaId) {
-        throw new Error('Failed to get media ID from WhatsApp.');
+      const uploadResult = await uploadResponse.json() as any;
+
+      if (!uploadResponse.ok || !uploadResult.id) {
+          throw new Error(`Failed to upload media to WhatsApp. Status: ${uploadResponse.status} - ${JSON.stringify(uploadResult)}`);
       }
 
+      const mediaId = uploadResult.id;
+
       // 2. Send the message template with the uploaded media
-      const messageResponse = await axios.post(
-        `https://graph.facebook.com/v20.0/${fromPhoneNumberId}/messages`,
-        {
-          messaging_product: 'whatsapp',
-          to: to,
-          type: 'template',
-          template: {
-            name: 'invoice_notification', // You must create a template with this name
-            language: { code: 'en_US' },
-            components: [
-              {
-                type: 'header',
-                parameters: [
-                  {
-                    type: 'document',
-                    document: {
-                      id: mediaId,
-                      filename: `TiffinBill-${customerName}.pdf`,
-                    },
+      const messageUrl = `https://graph.facebook.com/v20.0/${fromPhoneNumberId}/messages`;
+      const messagePayload = {
+        messaging_product: 'whatsapp',
+        to: to,
+        type: 'template',
+        template: {
+          name: 'invoice_notification',
+          language: { code: 'en_US' },
+          components: [
+            {
+              type: 'header',
+              parameters: [
+                {
+                  type: 'document',
+                  document: {
+                    id: mediaId,
+                    filename: `TiffinBill-${customerName}.pdf`,
                   },
-                ],
-              },
-              {
-                type: 'body',
-                parameters: [
-                  { type: 'text', text: customerName },
-                  { type: 'text', text: billingCycle },
-                  { type: 'text', text: totalAmount },
-                ],
-              },
-            ],
-          },
+                },
+              ],
+            },
+            {
+              type: 'body',
+              parameters: [
+                { type: 'text', text: customerName },
+                { type: 'text', text: billingCycle },
+                { type: 'text', text: totalAmount },
+              ],
+            },
+          ],
         },
-        {
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
+      };
+
+      const messageResponse = await fetch(messageUrl, {
+        method: 'POST',
+        headers: {
+            'Authorization': `Bearer ${accessToken}`,
             'Content-Type': 'application/json',
-          },
-        }
-      );
+        },
+        body: JSON.stringify(messagePayload),
+      });
       
-      const messageId = messageResponse.data?.messages?.[0]?.id;
+      const messageResult = await messageResponse.json() as any;
+
+      if (!messageResponse.ok) {
+        throw new Error(`WhatsApp message API returned an error. Status: ${messageResponse.status} - ${JSON.stringify(messageResult)}`);
+      }
+
+      const messageId = messageResult?.messages?.[0]?.id;
+      
       if (!messageId) {
-        // If there's no messageId, something went wrong, but it might not be a thrown error
-        // The API might return an error object in the data payload.
-        const errorDetails = messageResponse.data.error ? JSON.stringify(messageResponse.data.error) : 'Message sending did not return a message ID.';
+        const errorDetails = messageResult.error ? JSON.stringify(messageResult.error) : 'Message sending did not return a message ID.';
         throw new Error(errorDetails);
       }
       return { success: true, messageId: messageId };
 
     } catch (error: any) {
-      const errorDetails = error.response?.data ? JSON.stringify(error.response.data) : error.message;
+      const errorDetails = error.message || 'An unknown error occurred';
       console.error('Error sending WhatsApp message:', errorDetails);
       return { success: false, error: errorDetails };
     }
