@@ -30,7 +30,7 @@ export default function PhoneVerificationPage() {
       return;
     }
 
-    if (!isUserDocLoading && userData?.phoneVerified) {
+    if (!isUserDocLoading && userData?.phoneNumber) {
       router.push('/');
     }
   }, [user, isUserLoading, router, userData, isUserDocLoading]);
@@ -55,17 +55,17 @@ export default function PhoneVerificationPage() {
         <div className="flex flex-col items-center text-center">
           <UtensilsCrossed className="mb-4 h-16 w-16 text-primary" />
           <h1 className="text-4xl font-bold font-headline text-foreground">
-            Verify Your Phone
+            Add Your Phone Number
           </h1>
           <p className="mt-2 text-muted-foreground">
-            To enable WhatsApp bill reminders, please verify your phone number.
+            To enable future WhatsApp bill reminders, please provide your phone number.
           </p>
         </div>
 
         <PhoneVerificationForm user={user} userDocRef={userDocRef} />
         
         <p className="mt-8 px-8 text-center text-sm text-muted-foreground">
-          A 6-digit code will be sent to your mobile number via SMS.
+          Your number will be used for billing notifications.
         </p>
       </div>
     </div>

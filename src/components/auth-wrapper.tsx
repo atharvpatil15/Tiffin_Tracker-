@@ -31,8 +31,8 @@ export default function AuthWrapper({ children }: AuthWrapperProps) {
     }
 
     if (!isUserDocLoading && userData) {
-      // User document exists, check for phone verification
-      if (!userData.phoneVerified) {
+      // User document exists, check for phone number
+      if (!userData.phoneNumber) {
         router.push('/phone-verification');
       }
     }
@@ -40,7 +40,7 @@ export default function AuthWrapper({ children }: AuthWrapperProps) {
   
   const isLoading = isUserLoading || isUserDocLoading;
 
-  if (isLoading || !user || !userData || !userData.phoneVerified) {
+  if (isLoading || !user || !userData || !userData.phoneNumber) {
     return (
       <div className="flex min-h-screen items-center justify-center">
         <TiffinLoader />
