@@ -70,8 +70,11 @@ const sendWhatsAppTool = ai.defineTool(
       const pdfBuffer = Buffer.from(pdfDataUri.split('base64,')[1], 'base64');
       const formData = new FormData();
       formData.append('messaging_product', 'whatsapp');
-      formData.append('file', pdfBuffer, 'bill.pdf');
-      
+      formData.append('file', pdfBuffer, {
+        filename: `TiffinBill-${customerName}.pdf`,
+        contentType: 'application/pdf',
+      });
+
       const uploadUrl = `https://graph.facebook.com/v21.0/${fromPhoneNumberId}/media`;
 
       const uploadResponse = await axios.post(uploadUrl, formData, {
@@ -140,7 +143,7 @@ const sendWhatsAppTool = ai.defineTool(
       if (error.response) {
         // The request was made and the server responded with a status code
         // that falls out of the range of 2xx
-        errorDetails = JSON.stringify(error.response.data);
+        errorDetails = `Status: ${error.response.status} - ${JSON.stringify(error.response.data)}`;
       } else if (error.request) {
         // The request was made but no response was received
         errorDetails = 'No response received from WhatsApp server.';
