@@ -49,9 +49,9 @@ export default function AuthWrapper({ children }: AuthWrapperProps) {
     
     // Now we know for sure whether the user doc exists and if it has a phone number.
     // If the document or phone number is missing, and we're not already on the verification page, redirect.
-    if ((!userData || !userData.phoneNumber) && !window.location.pathname.includes('/phone-verification')) {
-        router.push('/phone-verification');
-    }
+    // if ((!userData || !userData.phoneNumber) && !window.location.pathname.includes('/phone-verification')) {
+    //     router.push('/phone-verification');
+    // }
 
   }, [user, isUserLoading, userData, isUserDocLoading, router]);
 

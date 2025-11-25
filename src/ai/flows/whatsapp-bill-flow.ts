@@ -10,6 +10,8 @@
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
 import { googleAI } from '@genkit-ai/google-genai';
+import axios from 'axios';
+import FormData from 'form-data';
 
 const WhatsappBillInputSchema = z.object({
   customerName: z.string().describe('The name of the customer.'),
@@ -34,16 +36,17 @@ export async function sendWhatsappBill(
   return whatsappBillFlow(input);
 }
 
-// Dummy tool to simulate sending a WhatsApp message.
-// In a real application, this would integrate with a service like Twilio.
+// Tool to send a WhatsApp message with a PDF bill.
 const sendWhatsAppTool = ai.defineTool(
   {
-    name: 'sendWhatsAppMessage',
-    description: 'Sends a message with a media attachment to a WhatsApp number.',
+    name: 'sendWhatsAppBill',
+    description: 'Sends a pre-formatted message with a PDF bill to a WhatsApp number.',
     inputSchema: z.object({
-      to: z.string().describe('The recipient\'s phone number.'),
-      message: z.string().describe('The text message to send.'),
-      media: z.string().describe('The data URI of the media to attach.'),
+      to: z.string().describe("The recipient's WhatsApp-enabled phone number."),
+      customerName: z.string().describe('The name of the customer.'),
+      billingCycle: z.string().describe('The billing period for the invoice.'),
+      totalAmount: z.string().describe('The total amount due for the bill.'),
+      pdfDataUri: z.string().describe('The Data URI of the PDF bill to be sent.'),
     }),
     outputSchema: z.object({
       success: z.boolean(),
@@ -51,11 +54,90 @@ const sendWhatsAppTool = ai.defineTool(
     }),
   },
   async (input) => {
-    console.log(`Simulating sending WhatsApp to ${input.to}`);
-    console.log(`Message: ${input.message}`);
-    // In a real implementation, you'd use a service like Twilio here.
-    // For now, we'll just simulate a successful send.
-    return { success: true, messageId: `fake-msg-${Date.now()}` };
+    const { to, customerName, billingCycle, totalAmount, pdfDataUri } = input;
+    const accessToken = process.env.WHATSAPP_ACCESS_TOKEN;
+    const fromPhoneNumberId = process.env.WHATSAPP_PHONE_NUMBER_ID;
+
+    if (!accessToken || !fromPhoneNumberId) {
+      console.error('WhatsApp environment variables not set.');
+      return { success: false };
+    }
+
+    try {
+      // 1. Upload the PDF media to WhatsApp
+      const pdfBuffer = Buffer.from(pdfDataUri.split('base64,')[1], 'base64');
+      const formData = new FormData();
+      formData.append('messaging_product', 'whatsapp');
+      formData.append('file', pdfBuffer, {
+        filename: 'bill.pdf',
+        contentType: 'application/pdf',
+      });
+
+      const uploadResponse = await axios.post(
+        `https://graph.facebook.com/v20.0/${fromPhoneNumberId}/media`,
+        formData,
+        {
+          headers: {
+            ...formData.getHeaders(),
+            Authorization: `Bearer ${accessToken}`,
+          },
+        }
+      );
+
+      const mediaId = uploadResponse.data.id;
+      if (!mediaId) {
+        throw new Error('Failed to get media ID from WhatsApp.');
+      }
+
+      // 2. Send the message template with the uploaded media
+      const messageResponse = await axios.post(
+        `https://graph.facebook.com/v20.0/${fromPhoneNumberId}/messages`,
+        {
+          messaging_product: 'whatsapp',
+          to: to,
+          type: 'template',
+          template: {
+            name: 'invoice_notification', // You must create a template with this name
+            language: { code: 'en_US' },
+            components: [
+              {
+                type: 'header',
+                parameters: [
+                  {
+                    type: 'document',
+                    document: {
+                      id: mediaId,
+                      filename: `TiffinBill-${customerName}.pdf`,
+                    },
+                  },
+                ],
+              },
+              {
+                type: 'body',
+                parameters: [
+                  { type: 'text', text: customerName },
+                  { type: 'text', text: billingCycle },
+                  { type: 'text', text: totalAmount },
+                ],
+              },
+            ],
+          },
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+      
+      const messageId = messageResponse.data?.messages?.[0]?.id;
+      return { success: true, messageId: messageId };
+
+    } catch (error: any) {
+      console.error('Error sending WhatsApp message:', error.response?.data || error.message);
+      return { success: false };
+    }
   }
 );
 
@@ -68,22 +150,34 @@ const whatsappBillFlow = ai.defineFlow(
   },
   async (input) => {
 
-    const prompt = `You are a helpful billing assistant for TiffinTrack. Your task is to send a monthly tiffin bill to a customer via WhatsApp.
+    const prompt = `You are a helpful billing assistant for TiffinTrack. Your task is to send a monthly tiffin bill to a customer via WhatsApp using a specific tool.
 
-Customer Name: ${input.customerName}
-Billing Cycle: ${input.billingCycle}
-Total Amount: Rs. ${input.totalAmount.toFixed(2)}
+You have been provided with the following information:
+- Customer Name: ${input.customerName}
+- Phone Number: ${input.phoneNumber}
+- Billing Cycle: ${input.billingCycle}
+- Total Amount: Rs. ${input.totalAmount.toFixed(2)}
+- PDF Bill Data: (available in the input)
 
-Generate a friendly and professional WhatsApp message. Start with a greeting, clearly state the total amount and billing period, and mention that the detailed PDF bill is attached.
-Then, use the provided tool to send the message and the PDF attachment to the customer's phone number.`;
+Your only job is to call the 'sendWhatsAppBill' tool with the exact information provided. Do not generate a message yourself. Just call the tool.
+`;
 
     const llmResponse = await ai.generate({
       model: googleAI.model('gemini-2.5-flash-preview'),
       prompt: prompt,
       tools: [sendWhatsAppTool],
       toolChoice: 'required',
+      toolConfig: {
+        toolData: {
+          to: input.phoneNumber,
+          customerName: input.customerName,
+          billingCycle: input.billingCycle,
+          totalAmount: `Rs. ${input.totalAmount.toFixed(2)}`,
+          pdfDataUri: input.pdfDataUri,
+        }
+      }
     });
-
+    
     const toolRequest = llmResponse.toolRequest();
     if (!toolRequest) {
       return {
@@ -92,8 +186,7 @@ Then, use the provided tool to send the message and the PDF attachment to the cu
       };
     }
     
-    // In a real scenario, you might want to do more with the tool's output.
-    // For this simulation, we'll just confirm it was called.
+    // The tool call will contain all the necessary data.
     const toolResponse = await toolRequest.run();
 
     const wasSuccessful = toolResponse.output?.success ?? false;
@@ -102,7 +195,7 @@ Then, use the provided tool to send the message and the PDF attachment to the cu
       success: wasSuccessful,
       message: wasSuccessful
         ? 'WhatsApp message sent successfully.'
-        : 'Failed to send WhatsApp message.',
+        : 'Failed to send WhatsApp message. Check server logs for details.',
     };
   }
 );
