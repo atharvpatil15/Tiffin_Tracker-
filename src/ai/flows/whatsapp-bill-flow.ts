@@ -167,15 +167,6 @@ Your only job is to call the 'sendWhatsAppBill' tool with the exact information 
       prompt: prompt,
       tools: [sendWhatsAppTool],
       toolChoice: 'required',
-      toolConfig: {
-        toolData: {
-          to: input.phoneNumber,
-          customerName: input.customerName,
-          billingCycle: input.billingCycle,
-          totalAmount: `Rs. ${input.totalAmount.toFixed(2)}`,
-          pdfDataUri: input.pdfDataUri,
-        }
-      }
     });
     
     const toolRequest = llmResponse.toolRequest();
@@ -187,7 +178,15 @@ Your only job is to call the 'sendWhatsAppBill' tool with the exact information 
     }
     
     // The tool call will contain all the necessary data.
-    const toolResponse = await toolRequest.run();
+    const toolResponse = await toolRequest.run({
+        context: {
+          to: input.phoneNumber,
+          customerName: input.customerName,
+          billingCycle: input.billingCycle,
+          totalAmount: `Rs. ${input.totalAmount.toFixed(2)}`,
+          pdfDataUri: input.pdfDataUri,
+        },
+      });
 
     const wasSuccessful = toolResponse.output?.success ?? false;
 
