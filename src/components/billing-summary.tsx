@@ -20,8 +20,8 @@ import {
   Sun,
   Moon,
   Download,
-  MessageSquareText,
   Phone,
+  ChevronDown,
 } from 'lucide-react';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
@@ -46,9 +46,14 @@ import {
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Calendar } from '@/components/ui/calendar';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
-import { sendWhatsappBill } from '@/ai/flows/whatsapp-bill-flow';
 
 interface BillingSummaryProps {
   user: {
@@ -61,21 +66,16 @@ interface BillingSummaryProps {
   onBillingDateChange: (newDate: number) => void;
 }
 
-const getBillingCycle = (
+const getBillingCycleForDate = (
+  date: Date,
   billingStartDate: number
 ): { start: Date; end: Date } => {
-  const today = new Date();
-  const currentDay = getDate(today);
-
+  const currentDay = getDate(date);
   let cycleStart: Date;
   let cycleEnd: Date;
 
   if (currentDay >= billingStartDate) {
-    cycleStart = new Date(
-      today.getFullYear(),
-      today.getMonth(),
-      billingStartDate
-    );
+    cycleStart = new Date(date.getFullYear(), date.getMonth(), billingStartDate);
     const nextMonth = addMonths(cycleStart, 1);
     cycleEnd = new Date(
       nextMonth.getFullYear(),
@@ -83,15 +83,15 @@ const getBillingCycle = (
       billingStartDate - 1
     );
   } else {
-    const prevMonth = subMonths(today, 1);
+    const prevMonth = subMonths(date, 1);
     cycleStart = new Date(
       prevMonth.getFullYear(),
       prevMonth.getMonth(),
       billingStartDate
     );
     cycleEnd = new Date(
-      today.getFullYear(),
-      today.getMonth(),
+      date.getFullYear(),
+      date.getMonth(),
       billingStartDate - 1
     );
   }
@@ -101,6 +101,12 @@ const getBillingCycle = (
   }
 
   return { start: cycleStart, end: cycleEnd };
+};
+
+const getBillingCycle = (
+  billingStartDate: number
+): { start: Date; end: Date } => {
+  return getBillingCycleForDate(new Date(), billingStartDate);
 };
 
 const calculateBill = (
@@ -187,14 +193,14 @@ const BillingSummary: FC<BillingSummaryProps> = ({
     setNewBillingDate(user.billingStartDate);
   }, [user.billingStartDate]);
 
-  const billingCycle = {
+  const billingCycleForDisplay = {
     start: dateRange?.from || autoBillingCycle.start,
     end: dateRange?.to || autoBillingCycle.end,
   };
 
-  const { totalBill, mealCounts, dailyBreakdown } = calculateBill(
+  const { totalBill, mealCounts } = calculateBill(
     user.tiffins || {},
-    billingCycle
+    billingCycleForDisplay
   );
 
   const handleSave = () => {
@@ -209,8 +215,17 @@ const BillingSummary: FC<BillingSummaryProps> = ({
     handleSave();
   };
 
-  const generateBillPdf = (options: { asDataUri: boolean } = { asDataUri: false }): string | null => {
-     const doc = new jsPDF() as any;
+  const generateAndDownloadPdf = (
+    cycle: { start: Date; end: Date },
+    userName: string,
+    tiffinLog: TiffinLog
+  ) => {
+    const { totalBill, mealCounts, dailyBreakdown } = calculateBill(
+      tiffinLog,
+      cycle
+    );
+
+    const doc = new jsPDF() as any;
 
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(22);
@@ -218,10 +233,10 @@ const BillingSummary: FC<BillingSummaryProps> = ({
 
     doc.setFontSize(12);
     doc.setFont('helvetica', 'normal');
-    doc.text(`Billed to: ${user.displayName}`, 20, 40);
+    doc.text(`Billed to: ${userName}`, 20, 40);
     doc.text(
-      `Billing Cycle: ${format(billingCycle.start, 'MMM d, yyyy')} - ${format(
-        billingCycle.end,
+      `Billing Cycle: ${format(cycle.start, 'MMM d, yyyy')} - ${format(
+        cycle.end,
         'MMM d, yyyy'
       )}`,
       20,
@@ -304,66 +319,30 @@ const BillingSummary: FC<BillingSummaryProps> = ({
       });
     }
 
-    if (options.asDataUri) {
-      return doc.output('datauristring');
-    }
-
     doc.save(
-      `TiffinBill-${user.displayName}-${format(new Date(), 'yyyy-MM-dd')}.pdf`
+      `TiffinBill-${userName}-${format(cycle.start, 'yyyy-MM')}.pdf`
     );
-    return null;
-  }
+  };
 
   const handleDownloadBill = () => {
-    generateBillPdf();
+    generateAndDownloadPdf(billingCycleForDisplay, user.displayName, user.tiffins);
   };
 
-  const handleSendWhatsApp = async () => {
-    if (!user.phoneNumber) {
-      toast({
-        variant: 'destructive',
-        title: 'No Phone Number',
-        description:
-          'Please add a phone number before sending a bill via WhatsApp.',
-      });
-      return;
+  const getPreviousBillingCycles = (count: number) => {
+    const cycles = [];
+    let currentDate = new Date();
+    for (let i = 0; i < count; i++) {
+      const cycle = getBillingCycleForDate(
+        currentDate,
+        user.billingStartDate
+      );
+      cycles.push(cycle);
+      currentDate = subMonths(cycle.start, 1);
     }
-
-    toast({
-      title: 'Sending Bill...',
-      description: 'Your bill is being prepared and sent via WhatsApp.',
-    });
-
-    try {
-      const pdfDataUri = generateBillPdf({ asDataUri: true });
-      if (!pdfDataUri) {
-        throw new Error('Failed to generate PDF for WhatsApp.');
-      }
-      
-      await sendWhatsappBill({
-        customerName: user.displayName,
-        phoneNumber: user.phoneNumber,
-        totalAmount: totalBill,
-        billingCycle: `${format(billingCycle.start, 'MMM d')} - ${format(
-          billingCycle.end,
-          'MMM d, yyyy'
-        )}`,
-        pdfDataUri: pdfDataUri,
-      });
-
-      toast({
-        title: 'Bill Sent!',
-        description: 'The bill has been successfully sent to your WhatsApp.',
-      });
-    } catch (e: any) {
-      console.error('Failed to send WhatsApp message:', e);
-      toast({
-        variant: 'destructive',
-        title: 'Send Failed',
-        description: 'Could not send the bill. Please try again.',
-      });
-    }
+    return cycles;
   };
+
+  const previousCycles = getPreviousBillingCycles(6);
 
   const resetDateRange = () => {
     const newCycle = getBillingCycle(user.billingStartDate);
@@ -384,8 +363,8 @@ const BillingSummary: FC<BillingSummaryProps> = ({
         </CardTitle>
         <CardDescription className="flex items-center gap-2 pt-1 flex-wrap">
           <span className="text-sm text-muted-foreground">
-            {format(billingCycle.start, 'MMM dd, yyyy')} -{' '}
-            {format(billingCycle.end, 'MMM dd, yyyy')}
+            {format(billingCycleForDisplay.start, 'MMM dd, yyyy')} -{' '}
+            {format(billingCycleForDisplay.end, 'MMM dd, yyyy')}
           </span>
           <Popover>
             <PopoverTrigger asChild>
@@ -468,12 +447,29 @@ const BillingSummary: FC<BillingSummaryProps> = ({
         <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
           <Button variant="outline" onClick={handleDownloadBill} className="w-full sm:w-auto">
             <Download className="mr-2 h-4 w-4" />
-            Download
+            Download Bill
           </Button>
-          <Button onClick={handleSendWhatsApp} className="w-full sm:w-auto bg-green-600 hover:bg-green-700 text-white">
-            <MessageSquareText className="mr-2 h-4 w-4" />
-            Send Bill
-          </Button>
+
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" className="w-full sm:w-auto">
+                Previous Bills
+                <ChevronDown className="ml-2 h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              {previousCycles.map((cycle, index) => (
+                <DropdownMenuItem
+                  key={index}
+                  onClick={() =>
+                    generateAndDownloadPdf(cycle, user.displayName, user.tiffins)
+                  }
+                >
+                  {format(cycle.start, 'MMM yyyy')}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
 
         <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
