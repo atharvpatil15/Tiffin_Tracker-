@@ -129,35 +129,35 @@ const calculateBill = (
     const dayLog = tiffinLog[dayFormatted];
     let dayTotal = 0;
 
-    const breakfastTaken = dayLog?.breakfast;
-    const lunchTaken = dayLog?.lunch;
-    const dinnerTaken = dayLog?.dinner;
+    const breakfastQty = dayLog?.breakfast || 0;
+    const lunchQty = dayLog?.lunch || 0;
+    const dinnerQty = dayLog?.dinner || 0;
 
-    if (breakfastTaken) {
-      const price = MEAL_PRICES.breakfast;
+    if (breakfastQty > 0) {
+      const price = MEAL_PRICES.breakfast * breakfastQty;
       totalBill += price;
-      mealCounts.breakfast++;
+      mealCounts.breakfast += breakfastQty;
       dayTotal += price;
     }
-    if (lunchTaken) {
-      const price = MEAL_PRICES.lunch;
+    if (lunchQty > 0) {
+      const price = MEAL_PRICES.lunch * lunchQty;
       totalBill += price;
-      mealCounts.lunch++;
+      mealCounts.lunch += lunchQty;
       dayTotal += price;
     }
-    if (dinnerTaken) {
-      const price = MEAL_PRICES.dinner;
+    if (dinnerQty > 0) {
+      const price = MEAL_PRICES.dinner * dinnerQty;
       totalBill += price;
-      mealCounts.dinner++;
+      mealCounts.dinner += dinnerQty;
       dayTotal += price;
     }
 
     if (dayTotal > 0 || isBefore(day, new Date())) {
       dailyBreakdown.push({
         date: format(day, 'MMM d, yyyy'),
-        breakfast: breakfastTaken ? 'Yes' : 'No',
-        lunch: lunchTaken ? 'Yes' : 'No',
-        dinner: dinnerTaken ? 'Yes' : 'No',
+        breakfast: breakfastQty > 0 ? `x${breakfastQty}` : 'No',
+        lunch: lunchQty > 0 ? `x${lunchQty}` : 'No',
+        dinner: dinnerQty > 0 ? `x${dinnerQty}` : 'No',
         dayTotal: `Rs. ${dayTotal.toFixed(2)}`,
       });
     }
@@ -307,7 +307,7 @@ const BillingSummary: FC<BillingSummaryProps> = ({
         styles: { font: 'helvetica', halign: 'center' },
         bodyStyles: {
           didParseCell: function (data: any) {
-            if (data.cell.text[0] === 'Yes') {
+            if (data.cell.text[0].startsWith('x')) {
               data.cell.styles.textColor = '#28a745';
               data.cell.styles.fontStyle = 'bold';
             }

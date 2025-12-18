@@ -1,7 +1,9 @@
 export type MealType = 'breakfast' | 'lunch' | 'dinner';
 
 export type TiffinDay = {
-  [key in MealType]: boolean;
+  breakfast: number;
+  lunch: number;
+  dinner: number;
 };
 
 export type TiffinLog = {
@@ -20,7 +22,7 @@ export interface TiffinOrder {
   id: string;
   userId: string;
   date: string; // YYYY-MM-DD
-  breakfast: boolean;
-  lunch: boolean;
-  dinner: boolean;
+  breakfast: number;
+  lunch: number;
+  dinner: number;
 }

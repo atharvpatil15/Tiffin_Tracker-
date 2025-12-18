@@ -12,11 +12,12 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
-import type { TiffinDay } from "@/lib/types";
+import type { TiffinDay, MealType } from "@/lib/types";
 import { MEAL_PRICES } from "@/lib/constants";
-import { Sunrise, Sun, Moon } from "lucide-react";
+import { Sunrise, Sun, Moon, Minus, Plus } from "lucide-react";
+import { Input } from "./ui/input";
+import { cn } from "@/lib/utils";
 
 interface TiffinEditorProps {
   open: boolean;
@@ -26,6 +27,71 @@ interface TiffinEditorProps {
   onSave: (meals: TiffinDay) => void;
 }
 
+const QuantityInput: FC<{
+  meal: MealType;
+  value: number;
+  onChange: (value: number) => void;
+  icon: React.ReactNode;
+  price: number;
+}> = ({ meal, value, onChange, icon, price }) => {
+  const handleIncrement = () => onChange(value + 1);
+  const handleDecrement = () => onChange(Math.max(0, value - 1));
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newValue = parseInt(e.target.value, 10);
+    onChange(isNaN(newValue) || newValue < 0 ? 0 : newValue);
+  };
+
+  return (
+    <div
+      className={cn(
+        "flex items-center space-x-3 rounded-md border p-4 transition-all",
+        value > 0 && "bg-primary/10 border-primary"
+      )}
+    >
+      <Label
+        htmlFor={meal}
+        className="flex-1 flex justify-between items-center text-sm font-medium cursor-pointer"
+      >
+        <div className="flex items-center gap-2">
+          {icon}
+          <span className="capitalize">{meal}</span>
+        </div>
+        <span className="font-mono text-muted-foreground">
+          Rs. {price.toFixed(2)}
+        </span>
+      </Label>
+      <div className="flex items-center gap-2">
+        <Button
+          type="button"
+          variant="outline"
+          size="icon"
+          className="h-8 w-8"
+          onClick={handleDecrement}
+        >
+          <Minus className="h-4 w-4" />
+        </Button>
+        <Input
+          id={meal}
+          type="number"
+          value={value}
+          onChange={handleInputChange}
+          className="w-16 h-8 text-center"
+          min="0"
+        />
+        <Button
+          type="button"
+          variant="outline"
+          size="icon"
+          className="h-8 w-8"
+          onClick={handleIncrement}
+        >
+          <Plus className="h-4 w-4" />
+        </Button>
+      </div>
+    </div>
+  );
+};
+
 const TiffinEditor: FC<TiffinEditorProps> = ({
   open,
   onOpenChange,
@@ -34,17 +100,17 @@ const TiffinEditor: FC<TiffinEditorProps> = ({
   onSave,
 }) => {
   const [meals, setMeals] = useState<TiffinDay>({
-    breakfast: false,
-    lunch: false,
-    dinner: false,
+    breakfast: 0,
+    lunch: 0,
+    dinner: 0,
     ...initialMeals,
   });
 
   useEffect(() => {
     setMeals({
-      breakfast: false,
-      lunch: false,
-      dinner: false,
+      breakfast: 0,
+      lunch: 0,
+      dinner: 0,
       ...initialMeals,
     });
   }, [initialMeals, date]);
@@ -53,8 +119,8 @@ const TiffinEditor: FC<TiffinEditorProps> = ({
     onSave(meals);
   };
 
-  const handleCheckedChange = (meal: keyof TiffinDay, checked: boolean) => {
-    setMeals((prev) => ({ ...prev, [meal]: checked }));
+  const handleQuantityChange = (meal: MealType, quantity: number) => {
+    setMeals((prev) => ({ ...prev, [meal]: quantity }));
   };
 
   return (
@@ -65,61 +131,31 @@ const TiffinEditor: FC<TiffinEditorProps> = ({
             Log Tiffin for {format(date, "MMMM d, yyyy")}
           </DialogTitle>
           <DialogDescription>
-            Select the meals you took on this day.
+            Select the quantity for each meal you took on this day.
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-4 py-4">
-          <div className="flex items-center space-x-3 rounded-md border p-4 transition-all has-[:checked]:bg-primary/10 has-[:checked]:border-primary">
-            <Checkbox
-              id="breakfast"
-              checked={meals.breakfast}
-              onCheckedChange={(checked) => handleCheckedChange("breakfast", !!checked)}
-            />
-            <Label
-              htmlFor="breakfast"
-              className="flex-1 flex justify-between items-center text-sm font-medium cursor-pointer"
-            >
-              <div className="flex items-center gap-2">
-                <Sunrise className="h-5 w-5 text-accent" />
-                Breakfast
-              </div>
-              <span className="font-mono text-muted-foreground">Rs. {MEAL_PRICES.breakfast.toFixed(2)}</span>
-            </Label>
-          </div>
-          <div className="flex items-center space-x-3 rounded-md border p-4 transition-all has-[:checked]:bg-primary/10 has-[:checked]:border-primary">
-            <Checkbox
-              id="lunch"
-              checked={meals.lunch}
-              onCheckedChange={(checked) => handleCheckedChange("lunch", !!checked)}
-            />
-            <Label
-              htmlFor="lunch"
-              className="flex-1 flex justify-between items-center text-sm font-medium cursor-pointer"
-            >
-              <div className="flex items-center gap-2">
-                <Sun className="h-5 w-5 text-accent" />
-                Lunch
-              </div>
-              <span className="font-mono text-muted-foreground">Rs. {MEAL_PRICES.lunch.toFixed(2)}</span>
-            </Label>
-          </div>
-          <div className="flex items-center space-x-3 rounded-md border p-4 transition-all has-[:checked]:bg-primary/10 has-[:checked]:border-primary">
-            <Checkbox
-              id="dinner"
-              checked={meals.dinner}
-              onCheckedChange={(checked) => handleCheckedChange("dinner", !!checked)}
-            />
-            <Label
-              htmlFor="dinner"
-              className="flex-1 flex justify-between items-center text-sm font-medium cursor-pointer"
-            >
-              <div className="flex items-center gap-2">
-                <Moon className="h-5 w-5 text-accent" />
-                Dinner
-              </div>
-              <span className="font-mono text-muted-foreground">Rs. {MEAL_PRICES.dinner.toFixed(2)}</span>
-            </Label>
-          </div>
+          <QuantityInput
+            meal="breakfast"
+            value={meals.breakfast}
+            onChange={(q) => handleQuantityChange("breakfast", q)}
+            icon={<Sunrise className="h-5 w-5 text-accent" />}
+            price={MEAL_PRICES.breakfast}
+          />
+          <QuantityInput
+            meal="lunch"
+            value={meals.lunch}
+            onChange={(q) => handleQuantityChange("lunch", q)}
+            icon={<Sun className="h-5 w-5 text-accent" />}
+            price={MEAL_PRICES.lunch}
+          />
+          <QuantityInput
+            meal="dinner"
+            value={meals.dinner}
+            onChange={(q) => handleQuantityChange("dinner", q)}
+            icon={<Moon className="h-5 w-5 text-accent" />}
+            price={MEAL_PRICES.dinner}
+          />
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>

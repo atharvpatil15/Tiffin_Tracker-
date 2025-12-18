@@ -109,9 +109,9 @@ const TiffinDashboard = () => {
     const mealsToSave: Partial<TiffinOrder> = {
       userId: user.uid,
       date: dateKey,
-      breakfast: meals.breakfast || false,
-      lunch: meals.lunch || false,
-      dinner: meals.dinner || false,
+      breakfast: meals.breakfast || 0,
+      lunch: meals.lunch || 0,
+      dinner: meals.dinner || 0,
     };
 
     setDocumentNonBlocking(tiffinDocRef, mealsToSave, { merge: true });
@@ -230,7 +230,7 @@ const TiffinDashboard = () => {
           }
           date={editorState.date}
           initialMeals={
-            tiffinLog[format(editorState.date, 'yyyy-MM-dd')] || {}
+            tiffinLog[format(editorState.date, 'yyyy-MM-dd')] || { breakfast: 0, lunch: 0, dinner: 0}
           }
           onSave={handleEditorSave}
         />

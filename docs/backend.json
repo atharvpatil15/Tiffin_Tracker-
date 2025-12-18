@@ -44,16 +44,16 @@
           "format": "date"
         },
         "breakfast": {
-          "type": "boolean",
-          "description": "Indicates whether breakfast was ordered for this date."
+          "type": "number",
+          "description": "Indicates the quantity of breakfast ordered for this date."
         },
         "lunch": {
-          "type": "boolean",
-          "description": "Indicates whether lunch was ordered for this date."
+          "type": "number",
+          "description": "Indicates the quantity of lunch ordered for this date."
         },
         "dinner": {
-          "type": "boolean",
-          "description": "Indicates whether dinner was ordered for this date."
+          "type": "number",
+          "description": "Indicates the quantity of dinner ordered for this date."
         }
       },
       "required": ["userId", "date"]

@@ -24,9 +24,9 @@ function CustomDayContent(props: DayContentProps & { tiffinLog: TiffinLog }) {
     if (!meals) return {};
 
     const colors = [];
-    if (meals.breakfast) colors.push("hsl(var(--indicator-breakfast))");
-    if (meals.lunch) colors.push("hsl(var(--indicator-lunch))");
-    if (meals.dinner) colors.push("hsl(var(--indicator-dinner))");
+    if (meals.breakfast && meals.breakfast > 0) colors.push("hsl(var(--indicator-breakfast))");
+    if (meals.lunch && meals.lunch > 0) colors.push("hsl(var(--indicator-lunch))");
+    if (meals.dinner && meals.dinner > 0) colors.push("hsl(var(--indicator-dinner))");
 
     if (colors.length === 0) return {};
     if (colors.length === 1) return { background: colors[0] };
@@ -36,7 +36,8 @@ function CustomDayContent(props: DayContentProps & { tiffinLog: TiffinLog }) {
     };
   };
 
-  const hasMeals = meals && (meals.breakfast || meals.lunch || meals.dinner);
+  const hasMeals = meals && ((meals.breakfast && meals.breakfast > 0) || (meals.lunch && meals.lunch > 0) || (meals.dinner && meals.dinner > 0));
+
 
   return (
     <div
@@ -61,7 +62,7 @@ const TiffinCalendar: FC<TiffinCalendarProps> = ({
   const tiffinDaysModifier = (date: Date) => {
     const dayFormatted = format(date, "yyyy-MM-dd");
     const meals = tiffinLog[dayFormatted];
-    return !!meals && (meals.breakfast || meals.lunch || meals.dinner);
+    return !!meals && ((meals.breakfast && meals.breakfast > 0) || (meals.lunch && meals.lunch > 0) || (meals.dinner && meals.dinner > 0));
   };
   
   return (
