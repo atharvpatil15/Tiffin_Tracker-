@@ -23,13 +23,6 @@ export default function AuthWrapper({ children }: AuthWrapperProps) {
   const { data: userData, isLoading: isUserDocLoading } =
     useDoc<UserData>(userDocRef);
 
-  const shouldRedirect =
-    !isUserLoading &&
-    user &&
-    !isUserDocLoading &&
-    (!userData || !userData.phoneNumber) &&
-    !window.location.pathname.includes('/phone-verification');
-
   useEffect(() => {
     // Wait until authentication is resolved
     if (isUserLoading) {
@@ -42,19 +35,19 @@ export default function AuthWrapper({ children }: AuthWrapperProps) {
       return;
     }
 
-    // Once auth is resolved, wait for the user's document to be loaded or confirmed non-existent
+    // Once auth is resolved, wait for the user's document to be loaded
     if (isUserDocLoading) {
       return;
     }
     
-    // Now we know for sure whether the user doc exists and if it has a phone number.
-    // If the document or phone number is missing, and we're not already on the verification page, redirect.
-    // if ((!userData || !userData.phoneNumber) && !window.location.pathname.includes('/phone-verification')) {
-    //     router.push('/phone-verification');
-    // }
+    // If user document is loaded and phone number is missing, redirect to verification page
+    // This check runs only after we are sure about the user's auth and data state.
+    if ((!userData || !userData.phoneNumber) && !window.location.pathname.includes('/phone-verification')) {
+        router.push('/phone-verification');
+    }
 
   }, [user, isUserLoading, userData, isUserDocLoading, router]);
-
+  
   const isLoading = isUserLoading || isUserDocLoading;
 
   if (isLoading || !user) {
@@ -65,7 +58,9 @@ export default function AuthWrapper({ children }: AuthWrapperProps) {
     );
   }
   
-  if (shouldRedirect) {
+  // This condition will briefly be true while the router is transitioning after the push command.
+  // It shows a loader instead of a brief flash of the old page.
+  if ((!userData || !userData.phoneNumber) && !window.location.pathname.includes('/phone-verification')) {
      return (
       <div className="flex min-h-screen items-center justify-center">
         <TiffinLoader text="Redirecting..." />
