@@ -100,20 +100,18 @@ const TiffinEditor: FC<TiffinEditorProps> = ({
   onSave,
 }) => {
   const [meals, setMeals] = useState<TiffinDay>({
-    breakfast: 0,
-    lunch: 0,
-    dinner: 0,
-    ...initialMeals,
+    breakfast: initialMeals.breakfast || 0,
+    lunch: initialMeals.lunch || 0,
+    dinner: initialMeals.dinner || 0,
   });
 
   useEffect(() => {
     setMeals({
-      breakfast: 0,
-      lunch: 0,
-      dinner: 0,
-      ...initialMeals,
+      breakfast: initialMeals.breakfast || 0,
+      lunch: initialMeals.lunch || 0,
+      dinner: initialMeals.dinner || 0,
     });
-  }, [initialMeals, date]);
+  }, [initialMeals, date, open]);
 
   const handleSave = () => {
     onSave(meals);
@@ -122,6 +120,13 @@ const TiffinEditor: FC<TiffinEditorProps> = ({
   const handleQuantityChange = (meal: MealType, quantity: number) => {
     setMeals((prev) => ({ ...prev, [meal]: quantity }));
   };
+
+  const getSafeQty = (meal: any): number => {
+      if (typeof meal === 'boolean') {
+        return meal ? 1 : 0;
+      }
+      return Number(meal) || 0;
+    };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -137,21 +142,21 @@ const TiffinEditor: FC<TiffinEditorProps> = ({
         <div className="space-y-4 py-4">
           <QuantityInput
             meal="breakfast"
-            value={meals.breakfast}
+            value={getSafeQty(meals.breakfast)}
             onChange={(q) => handleQuantityChange("breakfast", q)}
             icon={<Sunrise className="h-5 w-5 text-accent" />}
             price={MEAL_PRICES.breakfast}
           />
           <QuantityInput
             meal="lunch"
-            value={meals.lunch}
+            value={getSafeQty(meals.lunch)}
             onChange={(q) => handleQuantityChange("lunch", q)}
             icon={<Sun className="h-5 w-5 text-accent" />}
             price={MEAL_PRICES.lunch}
           />
           <QuantityInput
             meal="dinner"
-            value={meals.dinner}
+            value={getSafeQty(meals.dinner)}
             onChange={(q) => handleQuantityChange("dinner", q)}
             icon={<Moon className="h-5 w-5 text-accent" />}
             price={MEAL_PRICES.dinner}
