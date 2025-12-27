@@ -17,14 +17,6 @@
         "billingStartDate": {
           "type": "number",
           "description": "The custom start date for the user's monthly tiffin cycle."
-        },
-        "phoneNumber": {
-          "type": "string",
-          "description": "User's phone number."
-        },
-        "phoneVerified": {
-          "type": "boolean",
-          "description": "Indicates if the user's phone number has been verified."
         }
       },
       "required": ["name", "email", "billingStartDate"]
@@ -60,7 +52,7 @@
     }
   },
   "auth": {
-    "providers": ["password", "phone"]
+    "providers": ["password"]
   },
   "firestore": {
     "/users/{userId}": {

@@ -20,12 +20,10 @@ import {
   Sun,
   Moon,
   Download,
-  Phone,
   ChevronDown,
 } from 'lucide-react';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
-import { useRouter } from 'next/navigation';
 
 import type { TiffinLog } from '@/lib/types';
 import { MEAL_PRICES } from '@/lib/constants';
@@ -54,6 +52,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
+import { sendWhatsappBill } from '@/ai/flows/whatsapp-bill-flow';
 
 interface BillingSummaryProps {
   user: {
@@ -172,8 +171,8 @@ const BillingSummary: FC<BillingSummaryProps> = ({
 }) => {
   const [newBillingDate, setNewBillingDate] = useState(user.billingStartDate);
   const [isPopoverOpen, setIsPopoverOpen] = useState(false);
+  const [isSending, setIsSending] = useState(false);
   const { toast } = useToast();
-  const router = useRouter();
 
   const [autoBillingCycle, setAutoBillingCycle] = useState(() =>
     getBillingCycle(user.billingStartDate)
@@ -215,11 +214,11 @@ const BillingSummary: FC<BillingSummaryProps> = ({
     handleSave();
   };
 
-  const generateAndDownloadPdf = (
+  const generatePdf = (
     cycle: { start: Date; end: Date },
     userName: string,
     tiffinLog: TiffinLog
-  ) => {
+  ): { doc: jsPDF; totalBill: number } => {
     const { totalBill, mealCounts, dailyBreakdown } = calculateBill(
       tiffinLog,
       cycle
@@ -319,13 +318,26 @@ const BillingSummary: FC<BillingSummaryProps> = ({
       });
     }
 
+    return { doc, totalBill };
+  };
+
+  const generateAndDownloadPdf = (
+    cycle: { start: Date; end: Date },
+    userName: string,
+    tiffinLog: TiffinLog
+  ) => {
+    const { doc } = generatePdf(cycle, userName, tiffinLog);
     doc.save(
       `TiffinBill-${userName}-${format(cycle.start, 'yyyy-MM')}.pdf`
     );
   };
 
   const handleDownloadBill = () => {
-    generateAndDownloadPdf(billingCycleForDisplay, user.displayName, user.tiffins);
+    generateAndDownloadPdf(
+      billingCycleForDisplay,
+      user.displayName,
+      user.tiffins
+    );
   };
 
   const getPreviousBillingCycles = (count: number) => {
@@ -510,10 +522,6 @@ const BillingSummary: FC<BillingSummaryProps> = ({
               </form>
             </PopoverContent>
           </Popover>
-          <Button variant="ghost" size="sm" className="w-full sm:w-auto justify-center" onClick={() => router.push('/phone-verification')}>
-            <Phone className="mr-2 h-4 w-4" />
-            Update Phone
-          </Button>
         </div>
       </CardFooter>
     </Card>
