@@ -52,7 +52,6 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
-import { sendWhatsappBill } from '@/ai/flows/whatsapp-bill-flow';
 
 interface BillingSummaryProps {
   user: {
@@ -60,7 +59,6 @@ interface BillingSummaryProps {
     displayName: string;
     billingStartDate: number;
     tiffins: TiffinLog;
-    phoneNumber?: string;
   };
   onBillingDateChange: (newDate: number) => void;
 }
@@ -154,9 +152,9 @@ const calculateBill = (
     if (dayTotal > 0 || isBefore(day, new Date())) {
       dailyBreakdown.push({
         date: format(day, 'MMM d, yyyy'),
-        breakfast: breakfastQty > 0 ? `x${breakfastQty}` : 'No',
-        lunch: lunchQty > 0 ? `x${lunchQty}` : 'No',
-        dinner: dinnerQty > 0 ? `x${dinnerQty}` : 'No',
+        breakfast: breakfastQty > 0 ? `${breakfastQty}` : 'No',
+        lunch: lunchQty > 0 ? `${lunchQty}` : 'No',
+        dinner: dinnerQty > 0 ? `${dinnerQty}` : 'No',
         dayTotal: `Rs. ${dayTotal.toFixed(2)}`,
       });
     }
@@ -171,7 +169,6 @@ const BillingSummary: FC<BillingSummaryProps> = ({
 }) => {
   const [newBillingDate, setNewBillingDate] = useState(user.billingStartDate);
   const [isPopoverOpen, setIsPopoverOpen] = useState(false);
-  const [isSending, setIsSending] = useState(false);
   const { toast } = useToast();
 
   const [autoBillingCycle, setAutoBillingCycle] = useState(() =>
@@ -306,11 +303,12 @@ const BillingSummary: FC<BillingSummaryProps> = ({
         styles: { font: 'helvetica', halign: 'center' },
         bodyStyles: {
           didParseCell: function (data: any) {
-            if (data.cell.text[0].startsWith('x')) {
+            const text = data.cell.text[0];
+            if (!isNaN(text) && Number(text) > 0) {
               data.cell.styles.textColor = '#28a745';
               data.cell.styles.fontStyle = 'bold';
             }
-            if (data.cell.text[0] === 'No') {
+            if (text === 'No') {
               data.cell.styles.textColor = '#dc3545';
             }
           },
@@ -529,3 +527,5 @@ const BillingSummary: FC<BillingSummaryProps> = ({
 };
 
 export default BillingSummary;
+
+    
