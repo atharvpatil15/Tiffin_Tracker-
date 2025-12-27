@@ -126,9 +126,17 @@ const calculateBill = (
     const dayLog = tiffinLog[dayFormatted];
     let dayTotal = 0;
 
-    const breakfastQty = dayLog?.breakfast || 0;
-    const lunchQty = dayLog?.lunch || 0;
-    const dinnerQty = dayLog?.dinner || 0;
+    // Helper to safely get quantity, converting boolean `true` to 1 for backward compatibility
+    const getSafeQty = (meal: any): number => {
+      if (typeof meal === 'boolean') {
+        return meal ? 1 : 0;
+      }
+      return Number(meal) || 0;
+    };
+
+    const breakfastQty = getSafeQty(dayLog?.breakfast);
+    const lunchQty = getSafeQty(dayLog?.lunch);
+    const dinnerQty = getSafeQty(dayLog?.dinner);
 
     if (breakfastQty > 0) {
       const price = MEAL_PRICES.breakfast * breakfastQty;
@@ -527,5 +535,3 @@ const BillingSummary: FC<BillingSummaryProps> = ({
 };
 
 export default BillingSummary;
-
-    
